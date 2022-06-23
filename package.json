@@ -1,0 +1,27 @@
+{
+  "name": "@web3alert/substrate-client",
+  "version": "0.1.0",
+  "description": "Substrate client for online chain monitoring",
+  "keywords": [
+    "substrate"
+  ],
+  "bugs": "https://github.com/web3alert/substrate-client/issues",
+  "license": "MIT",
+  "author": "web3alert <info@web3alert.io>",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "repository": "git@github.com:web3alert/substrate-client.git",
+  "dependencies": {
+    "@polkadot/api": "^8.9.1",
+    "@polkadot/api-augment": "^8.9.1",
+    "@polkadot/types": "^8.9.1",
+    "change-case": "^4.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^4.7.4"
+  }
+}
