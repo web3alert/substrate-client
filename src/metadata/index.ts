@@ -1,2 +1,3 @@
-export * from './legacy-type-registry';
+export * from './multiset';
+export * from './type-registry';
 export * from './metadata';

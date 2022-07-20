@@ -1,10 +1,12 @@
 import { snakeCase } from 'change-case';
 import type { MetadataV14 } from '@polkadot/types/interfaces';
+import { sanitize } from '@polkadot/types-codec';
 import type { EventSpec } from '../types';
 import {
   Result,
   buildEventName,
 } from '../utils';
+import type { TypeRegistry } from './type-registry';
 import { formatDocs } from './format-docs';
 
 type ParsedDocs = {
@@ -49,7 +51,7 @@ function parseDocs(docs: string): ParsedDocs {
   };
 }
 
-export function parseEvents(source: MetadataV14): Result<EventSpec> {
+export function parseEvents(source: MetadataV14, types: TypeRegistry): Result<EventSpec> {
   const result = new Result<EventSpec>();
   
   for (const pallet of source.pallets) {
@@ -70,6 +72,7 @@ export function parseEvents(source: MetadataV14): Result<EventSpec> {
     
     for (const variant of variants) {
       const eventName = variant.name.toString();
+      const name = buildEventName({ kind: 'event', module: moduleName, event: eventName });
       
       const rawDocs = variant.docs.join('\n');
       const parsedDocs = parseDocs(rawDocs);
@@ -94,13 +97,18 @@ export function parseEvents(source: MetadataV14): Result<EventSpec> {
           }
         }
         
+        const typeDef = source.lookup.getTypeDef(field.type);
+        const typeName = field.typeName.isSome ? field.typeName.unwrap().toString() : null;
+        if (typeName) {
+          typeDef.typeName = sanitize(typeName);
+        }
+        
+        const typeHandler = types.get(typeDef, `${name.full}.${argName}`);
+        
         return {
           name: argName,
-          type: argType,
-          comment: (field.typeName.isSome)
-            ? `from field: ${field.typeName.unwrap().toString()}`
-            : `from si lookup: ${source.lookup.getName(argType)}`
-          ,
+          spec: typeHandler.spec,
+          parse: typeHandler.parse,
         };
       });
       
@@ -118,11 +126,7 @@ export function parseEvents(source: MetadataV14): Result<EventSpec> {
       }
       
       result.items.push({
-        name: buildEventName({
-          kind: 'event',
-          module: moduleName,
-          event: eventName,
-        }),
+        name,
         docs: formatDocs(parsedDocs.text),
         args,
       });

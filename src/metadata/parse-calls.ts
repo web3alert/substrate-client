@@ -1,12 +1,14 @@
+import { sanitize } from '@polkadot/types-codec';
 import type { MetadataV14 } from '@polkadot/types/interfaces';
 import type { EventSpec } from '../types';
 import {
   Result,
   buildEventName,
 } from '../utils';
+import type { TypeRegistry } from './type-registry';
 import { formatDocs } from './format-docs';
 
-export function parseCalls(source: MetadataV14): Result<EventSpec> {
+export function parseCalls(source: MetadataV14, types: TypeRegistry): Result<EventSpec> {
   const result = new Result<EventSpec>();
   
   for (const pallet of source.pallets) {
@@ -27,6 +29,7 @@ export function parseCalls(source: MetadataV14): Result<EventSpec> {
     
     for (const variant of variants) {
       const callName = variant.name.toString();
+      const name = buildEventName({ kind: 'call', module: moduleName, event: callName });
       
       const docs = variant.docs.join('\n');
       
@@ -45,13 +48,18 @@ export function parseCalls(source: MetadataV14): Result<EventSpec> {
           argName = `arg${index}`;
         }
         
+        const typeDef = source.lookup.getTypeDef(field.type);
+        const typeName = field.typeName.isSome ? field.typeName.unwrap().toString() : null;
+        if (typeName) {
+          typeDef.typeName = sanitize(typeName);
+        }
+        
+        const typeHandler = types.get(typeDef, `${name.full}.${argName}`);
+        
         return {
           name: argName,
-          type: argType,
-          comment: (field.typeName.isSome)
-            ? `from field: ${field.typeName.unwrap().toString()}`
-            : `from si lookup: ${source.lookup.getName(argType)}`
-          ,
+          spec: typeHandler.spec,
+          parse: typeHandler.parse,
         };
       });
       
@@ -67,11 +75,7 @@ export function parseCalls(source: MetadataV14): Result<EventSpec> {
       }
       
       result.items.push({
-        name: buildEventName({
-          kind: 'call',
-          module: moduleName,
-          event: callName,
-        }),
+        name,
         docs: formatDocs(docs),
         args,
       });

@@ -4,15 +4,13 @@ import {
 } from '@polkadot/api';
 import type { ApiDecoration } from '@polkadot/api/types';
 import type {
+  AddressFormat,
   About,
   Event,
 } from './types';
 import type { EventRecord } from './event-record';
 import { Result } from './utils';
-import {
-  LegacyTypeRegistry,
-  Metadata,
-} from './metadata';
+import { Metadata } from './metadata';
 import { handleEvents } from './handle-events';
 import { handleCalls } from './handle-calls';
 
@@ -26,19 +24,16 @@ type InternalAbout = {
 const SUPPORTED_METADATA_VERSION = 14;
 
 export type SubstrateClientOptions = {
-  legacyTypeRegistry: LegacyTypeRegistry;
+  defaultAddressFormat?: AddressFormat;
 };
 
 export class SubstrateClient {
-  private legacyTypeRegistry: LegacyTypeRegistry;
-  
+  public defaultAddressFormat: AddressFormat;
   public api!: ApiPromise;
   public metadata!: Metadata;
   
-  constructor(options: SubstrateClientOptions) {
-    const { legacyTypeRegistry } = options;
-    
-    this.legacyTypeRegistry = legacyTypeRegistry;
+  constructor(options?: SubstrateClientOptions) {
+    this.defaultAddressFormat = options?.defaultAddressFormat ?? 'substrate';
   }
   
   public async connect(wsUrl: string): Promise<void> {
@@ -54,8 +49,14 @@ export class SubstrateClient {
       throw new Error(`runtime metadata version is '${metadataVersion}', which is not supported`);
     }
     
-    const currentBlockNumber = await this.currentBlockNumber();
-    await this.updateCurrentMetadata(currentBlockNumber);
+    try {
+      const currentBlockNumber = await this.currentBlockNumber();
+      await this.updateCurrentMetadata(currentBlockNumber);
+    } catch (err) {
+      await this.api.disconnect();
+      
+      throw err;
+    }
   }
   
   public async close(): Promise<void> {
@@ -88,6 +89,7 @@ export class SubstrateClient {
       chain: {
         name: runtimeVersion.specName.toString(),
         version: runtimeVersion.specVersion.toNumber(),
+        defaultAddressFormat: this.defaultAddressFormat,
         ss58Prefix: apiAt.registry.chainSS58,
         tokens: apiAt.registry.chainTokens,
         decimals: apiAt.registry.chainDecimals,
@@ -119,7 +121,6 @@ export class SubstrateClient {
     this.metadata = new Metadata({
       about,
       source: apiAt.registry.metadata,
-      legacyTypeRegistry: this.legacyTypeRegistry,
     });
   }
   

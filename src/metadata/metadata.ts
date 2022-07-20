@@ -5,19 +5,18 @@ import type {
   EventSpec,
 } from '../types';
 import { parse } from './parse';
-import type { LegacyTypeRegistry } from './legacy-type-registry';
+import { TypeRegistry } from './type-registry';
 
 export interface MetadataOptions {
   about: About;
   source: MetadataV14;
-  legacyTypeRegistry: LegacyTypeRegistry;
 }
 
 export class Metadata {
   private index: Map<string, EventSpec>;
   
   public about: About;
-  public types: LegacyTypeRegistry;
+  public types: TypeRegistry;
   public events: EventSpec[];
   public errors: ErrorDetails[];
   
@@ -25,10 +24,14 @@ export class Metadata {
     const {
       about,
       source,
-      legacyTypeRegistry,
     } = options;
     
-    const parsed = parse(source);
+    const types = new TypeRegistry({
+      about,
+      lookup: source.lookup,
+    });
+    
+    const parsed = parse(source, types);
     
     this.index = new Map();
     for (const event of parsed.items) {
@@ -36,7 +39,7 @@ export class Metadata {
     }
     
     this.about = about;
-    this.types = legacyTypeRegistry;
+    this.types = types;
     this.events = parsed.items;
     this.errors = parsed.errors;
   }

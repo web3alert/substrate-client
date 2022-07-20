@@ -44,22 +44,10 @@ export function handleEvent(options: HandleEventOptions): Event {
   const params: Record<string, unknown> = {};
   
   for (let i = 0; i < event.argValues.length; i++) {
-    const eventArgValue = event.argValues[i];
-    const eventArgType = event.argTypes[i];
-    const metadataArg = eventSpec.args[i];
+    const argValue = event.argValues[i];
+    const argSpec = eventSpec.args[i];
     
-    if (eventArgType != metadataArg.type) {
-      throw error('event arg type does not match its metadata', {
-        event: event.name.full,
-        arg: metadataArg.name,
-        expected: metadataArg.type,
-        received: eventArgType,
-      });
-    }
-    
-    const handle = metadata.types.get(metadataArg.type);
-    
-    params[metadataArg.name] = handle(eventArgValue);
+    params[argSpec.name] = argSpec.parse(argValue);
   }
   
   return {

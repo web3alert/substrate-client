@@ -1,3 +1,12 @@
+import type {
+  spec,
+  parser,
+} from './metadata';
+
+export type PartialRecord<K extends string | number | symbol, V> = Partial<Record<K, V>>;
+
+export type AddressFormat = 'substrate' | 'evm';
+
 export type About = {
   node: {
     name: string;
@@ -10,6 +19,7 @@ export type About = {
   chain: {
     name: string;
     version: number;
+    defaultAddressFormat: AddressFormat;
     ss58Prefix: number | undefined;
     tokens: string[];
     decimals: number[];
@@ -37,8 +47,8 @@ export type EventName = {
 
 export type EventArgument = {
   name: string;
-  type: number;
-  comment: string;
+  spec: spec.Spec;
+  parse: parser.Parser;
 };
 
 export type EventSpec = {
