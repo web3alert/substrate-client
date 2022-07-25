@@ -1,5 +1,8 @@
 import _ from 'lodash';
-import type { Vec } from '@polkadot/types';
+import type {
+  Vec,
+  Int,
+} from '@polkadot/types';
 import type {
   Codec,
   AnyJson,
@@ -38,7 +41,23 @@ export function int(): Parser<number> {
 }
 
 export function bigint(): Parser<number> {
-  return value => value.toJSON() as number;
+  return value => Number((value as Int).toBigInt());
+}
+
+export type FixedPointOptions = {
+  decimals: number;
+};
+
+export function fixedPoint(options: FixedPointOptions): Parser<number> {
+  const {
+    decimals,
+  } = options;
+  
+  return value => {
+    const raw = Number((value as Int).toBigInt());
+    
+    return raw / Math.pow(10, decimals);
+  }
 }
 
 export function balance(): Parser<number> {

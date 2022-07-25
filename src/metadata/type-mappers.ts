@@ -129,6 +129,14 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
+    'SignedFixedPoint',
+  ], (ctx, source, path) => {
+    return {
+      spec: spec.bigint(),
+      parse: parser.fixedPoint({ decimals: 18 }),
+    };
+  }),
+  bind([
     'Balance', 'BalanceOf',
   ], (ctx, source, path) => {
     return {
