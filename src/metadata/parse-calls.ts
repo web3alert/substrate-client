@@ -36,8 +36,6 @@ export function parseCalls(source: MetadataV14, types: TypeRegistry): Result<Eve
       let fallbackNameUsed = false;
       
       const args = variant.fields.map((field, index) => {
-        const argType = field.type.toNumber();
-        
         let argName: string;
         
         if (field.name.isSome) {
@@ -48,7 +46,8 @@ export function parseCalls(source: MetadataV14, types: TypeRegistry): Result<Eve
           argName = `arg${index}`;
         }
         
-        const typeDef = source.lookup.getTypeDef(field.type);
+        const typeDefSource = source.lookup.getTypeDef(field.type);
+        const typeDef = Object.assign({}, typeDefSource);
         const typeName = field.typeName.isSome ? field.typeName.unwrap().toString() : null;
         if (typeName) {
           typeDef.typeName = sanitize(typeName);
@@ -60,6 +59,10 @@ export function parseCalls(source: MetadataV14, types: TypeRegistry): Result<Eve
           name: argName,
           spec: typeHandler.spec,
           parse: typeHandler.parse,
+          debug: {
+            typeDef: typeDefSource,
+            typeName: (typeName) ? { raw: typeName, sanitized: sanitize(typeName) } : null,
+          },
         };
       });
       

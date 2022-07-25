@@ -117,6 +117,14 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
+    'CurrencyId',
+  ], (ctx, source, path) => {
+    return {
+      spec: spec.currency(),
+      parse: parser.raw(),
+    };
+  }),
+  bind([
     'Bytes',
   ], (ctx, source, path) => {
     return {

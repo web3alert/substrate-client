@@ -1,3 +1,4 @@
+import type { TypeDef } from '@polkadot/types/types';
 import type {
   spec,
   parser,
@@ -31,6 +32,11 @@ export type ErrorDetails = {
   details?: Record<string, unknown>;
 };
 
+export type CurrencyInfo = {
+  symbol: string;
+  decimals: number;
+};
+
 export type EventKind = 'event' | 'call';
 
 export type EventNameSource = {
@@ -49,6 +55,10 @@ export type EventArgument = {
   name: string;
   spec: spec.Spec;
   parse: parser.Parser;
+  debug: {
+    typeDef: TypeDef;
+    typeName: { raw: string, sanitized: string } | null;
+  };
 };
 
 export type EventSpec = {

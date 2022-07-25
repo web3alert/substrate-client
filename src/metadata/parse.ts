@@ -4,6 +4,10 @@ import { Result } from '../utils';
 import type { TypeRegistry } from './type-registry';
 import { parseEvents } from './parse-events';
 import { parseCalls } from './parse-calls';
+import {
+  AutomagicContext,
+  applyAutomagic,
+} from './automagic';
 
 export function parse(source: MetadataV14, types: TypeRegistry): Result<EventSpec> {
   const result = new Result<EventSpec>();
@@ -20,6 +24,14 @@ export function parse(source: MetadataV14, types: TypeRegistry): Result<EventSpe
       return 0;
     }
   });
+  
+  const automagicContext: AutomagicContext = {
+    about: types.about,
+  };
+  
+  for (const event of result.items) {
+    applyAutomagic(automagicContext, event);
+  }
   
   return result;
 }

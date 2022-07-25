@@ -31,6 +31,8 @@ export type TypeRegistryOptions = {
 };
 
 export class TypeRegistry {
+  public about: About;
+  
   private ctx: mapper.Context;
   
   constructor(options: TypeRegistryOptions) {
@@ -40,6 +42,8 @@ export class TypeRegistry {
       primitives,
       lookup,
     } = options;
+    
+    this.about = about;
     
     this.ctx = {
       about,

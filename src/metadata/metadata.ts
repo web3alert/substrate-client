@@ -5,6 +5,7 @@ import type {
   EventSpec,
 } from '../types';
 import { parse } from './parse';
+import { CurrencyRegistry } from './currency-registry';
 import { TypeRegistry } from './type-registry';
 
 export interface MetadataOptions {
@@ -17,6 +18,7 @@ export class Metadata {
   
   public about: About;
   public types: TypeRegistry;
+  public currencies: CurrencyRegistry;
   public events: EventSpec[];
   public errors: ErrorDetails[];
   
@@ -31,6 +33,10 @@ export class Metadata {
       lookup: source.lookup,
     });
     
+    const currencies = new CurrencyRegistry({
+      about,
+    });
+    
     const parsed = parse(source, types);
     
     this.index = new Map();
@@ -40,6 +46,7 @@ export class Metadata {
     
     this.about = about;
     this.types = types;
+    this.currencies = currencies;
     this.events = parsed.items;
     this.errors = parsed.errors;
   }

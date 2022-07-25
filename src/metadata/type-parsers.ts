@@ -2,12 +2,10 @@ import type {
   Codec,
   AnyJson,
 } from '@polkadot/types/types';
+import type { CurrencyInfo } from '../types';
 
 export type ParserContext = {
-  token?: {
-    symbol: string;
-    decimals: number;
-  };
+  currency?: CurrencyInfo;
 };
 
 export type Parser<T extends AnyJson = AnyJson> = (value: Codec, ctx?: ParserContext) => T;
@@ -34,12 +32,12 @@ export function bigint(): Parser<number> {
 
 export function balance(): Parser<number> {
   return (value, ctx) => {
-    if (ctx?.token) {
-      const raw = value.toJSON() as number;
-      
-      return raw / Math.pow(10, ctx.token.decimals); // TODO: fix
+    const raw = value.toJSON() as number;
+    
+    if (ctx?.currency) {
+      return raw / Math.pow(10, ctx.currency.decimals);
     } else {
-      return value.toJSON() as number;
+      return raw;
     }
   };
 }

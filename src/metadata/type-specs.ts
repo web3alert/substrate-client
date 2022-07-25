@@ -18,8 +18,26 @@ export type Bigint = {
   type: 'bigint';
 };
 
+export type BalancyCurrencyPlain = {
+  plain: string;
+};
+
+export type BalanceCurrencyLookup = {
+  lookup: string;
+};
+
+export type BalanceCurrency =
+  | BalancyCurrencyPlain
+  | BalanceCurrencyLookup
+;
+
 export type Balance = {
   type: 'balance';
+  currency?: BalanceCurrency;
+};
+
+export type Currency = {
+  type: 'currency';
 };
 
 export type String = {
@@ -53,6 +71,7 @@ export type Spec =
   | Int
   | Bigint
   | Balance
+  | Currency
   | String
   | Hash
   | Address
@@ -68,6 +87,10 @@ export type AddressOptionsEvm = {
 };
 
 export type AddressOptions = AddressOptionsSubstrate | AddressOptionsEvm;
+
+export type BalanceOptions = {
+  currency: BalanceCurrency;
+};
 
 export function unknown(): Unknown {
   return { type: 'unknown' };
@@ -91,6 +114,10 @@ export function bigint(): Bigint {
 
 export function balance(): Balance {
   return { type: 'balance' };
+}
+
+export function currency(): Currency {
+  return { type: 'currency' };
 }
 
 export function string(): String {
