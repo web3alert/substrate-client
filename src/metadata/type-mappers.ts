@@ -121,7 +121,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'u64', 'u128',
+    'u64', 'i64', 'u128', 'i128',
   ], (ctx, source, path) => {
     return {
       spec: spec.bigint(),
