@@ -23,7 +23,10 @@ export type BalancyCurrencyPlain = {
 };
 
 export type BalanceCurrencyLookup = {
-  lookup: string;
+  lookup: {
+    match: string;
+    replace: string;
+  };
 };
 
 export type BalanceCurrency =
@@ -64,7 +67,7 @@ export type Address =
   | AddressEvm
 ;
 
-export type Spec =
+export type Primitive =
   | Unknown
   | Skip
   | Bool
@@ -77,20 +80,19 @@ export type Spec =
   | Address
 ;
 
-export type AddressOptionsSubstrate = {
-  addressFormat: 'substrate';
-  ss58Prefix: number;
+export type Array = {
+  type: 'array';
+  items: Spec;
 };
 
-export type AddressOptionsEvm = {
-  addressFormat: 'evm';
-};
+export type Wrapper =
+  | Array
+;
 
-export type AddressOptions = AddressOptionsSubstrate | AddressOptionsEvm;
-
-export type BalanceOptions = {
-  currency: BalanceCurrency;
-};
+export type Spec =
+  | Primitive
+  | Wrapper
+;
 
 export function unknown(): Unknown {
   return { type: 'unknown' };
@@ -128,6 +130,25 @@ export function hash(): Hash {
   return { type: 'hash' };
 }
 
+export type AddressOptionsSubstrate = {
+  addressFormat: 'substrate';
+  ss58Prefix: number;
+};
+
+export type AddressOptionsEvm = {
+  addressFormat: 'evm';
+};
+
+export type AddressOptions = AddressOptionsSubstrate | AddressOptionsEvm;
+
 export function address(options: AddressOptions): Address {
   return { type: 'address', ...options };
+}
+
+export type ArrayOptions = {
+  items: Spec;
+};
+
+export function array(options: ArrayOptions): Array {
+  return { type: 'array', ...options };
 }

@@ -38,6 +38,8 @@ export type Mapper = (
   path: string,
 ) => Handler;
 
+const RE_VEC = /^Vec<(.+)>$/;
+
 const unknown: Handler = {
   spec: spec.unknown(),
   parse: parser.raw(),
@@ -60,6 +62,24 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
   },
   [TypeDefInfo.Plain]: (ctx, source, path) => {
     return ctx.primitives.get(ctx, source, path);
+  },
+  [TypeDefInfo.Vec]: (ctx, source, path) => {
+    const sub = { ...source.sub! as TypeDef };
+    
+    if (source.typeName) {
+      const match = source.typeName.match(RE_VEC);
+      
+      if (match) {
+        sub.typeName = match[1];
+      }
+    }
+    
+    const itemsHandler = ctx.wrappers.get(ctx, sub, `${path}[$]`);
+    
+    return {
+      spec: spec.array({ items: itemsHandler.spec }),
+      parse: parser.array({ parseItem: itemsHandler.parse }),
+    };
   },
 };
 
@@ -140,6 +160,11 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
       parse: parser.string(),
     };
   }),
+  /*
+    Do not ever bind 'AccountId', because it can point to different types in different networks,
+    like 'AccountId20' (which is evm type of address) in Moonbeam and 'AccountId32' (which is
+    substrate type of address) in Polkadot
+  */
   // TODO: check for MultiAddress and AccountId20 compatibility
   bind([
     'AccountId32', /* 'MultiAddress', */
@@ -185,38 +210,53 @@ function buildIndex(
 export const DEFAULT_PRIMITIVE_MAPPERS = buildIndex(DEFAULT_PRIMITIVE_MAPPER_BINDINGS);
 
 export const wrapper: Mapper = (ctx, source, path) => {
-  const index = ctx.wrappers.index;
-  const key = source.info;
-  const mapper = index[key];
+  let mapper: Mapper | undefined = undefined;
+  
+  if (source.typeName != undefined) {
+    mapper = ctx.primitives.index[source.typeName];
+    
+    if (!mapper) {
+      ctx.primitives.unknowns.complex.add(source.typeName, path);
+    }
+  }
+  
+  if (!mapper) {
+    mapper = ctx.wrappers.index[source.info];
+    
+    if (!mapper) {
+      ctx.wrappers.unknowns.add(source.info, path);
+    }
+  }
   
   if (mapper) {
     return mapper(ctx, source, path);
   } else {
-    ctx.wrappers.unknowns.add(key, path);
-    
     return unknown;
   }
 };
 
 export const primitive: Mapper = (ctx, source, path) => {
-  const index = ctx.primitives.index;
-  let key = source.type;
+  let mapper: Mapper | undefined = undefined;
   
   if (source.typeName != undefined) {
-    if (index[source.typeName]) {
-      key = source.typeName;
-    } else {
+    mapper = ctx.primitives.index[source.typeName];
+    
+    if (!mapper) {
       ctx.primitives.unknowns.complex.add(source.typeName, path);
     }
   }
   
-  const mapper = index[key];
+  if (!mapper) {
+    mapper = ctx.primitives.index[source.type];
+    
+    if (!mapper) {
+      ctx.primitives.unknowns.basic.add(source.type, path);
+    }
+  }
   
   if (mapper) {
     return mapper(ctx, source, path);
   } else {
-    ctx.primitives.unknowns.basic.add(key, path);
-    
     return unknown;
   }
 };

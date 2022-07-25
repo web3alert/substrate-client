@@ -1,14 +1,28 @@
 import type { EventSpec } from '../../types';
-import type { Balance } from '../type-specs';
+import type * as spec from '../type-specs';
 import type { AutomagicContext } from './types';
 
-// TODO: support more cases like parallel arrays of currencies and balances
+type IsPredicate = (spec: spec.Spec) => boolean;
 
-function countArgs(event: EventSpec, type: string): number {
+function isType(type: string): IsPredicate {
+  return spec => spec.type == type;
+}
+
+const isBalance = isType('balance');
+const isCurrency = isType('currency');
+
+function isArrayOfType(type: string): IsPredicate {
+  return spec => spec.type == 'array' && spec.items.type == type;
+}
+
+const isArrayOfBalances = isArrayOfType('balance');
+const isArrayOfCurrencies = isArrayOfType('currency');
+
+function countArgs(event: EventSpec, is: IsPredicate): number {
   let count = 0;
   
   for (const arg of event.args) {
-    if (arg.spec.type == type) {
+    if (is(arg.spec)) {
       count++;
     }
   }
@@ -16,26 +30,50 @@ function countArgs(event: EventSpec, type: string): number {
   return count;
 }
 
-function asOneToOne(ctx: AutomagicContext, event: EventSpec): void {
-  const balanceArg = event.args.find(item => item.spec.type == 'balance')!;
-  const balanceArgSpec: Balance = balanceArg.spec as Balance;
-  const currencyArg = event.args.find(item => item.spec.type == 'currency')!;
+function asParallelArrays(ctx: AutomagicContext, event: EventSpec): void {
+  const arrayOfBalancesArg = event.args.find(item => isArrayOfBalances(item.spec))!;
+  const arrayOfCurrenciesArg = event.args.find(item => isArrayOfCurrencies(item.spec))!;
   
-  balanceArgSpec.currency = { lookup: currencyArg.name };
+  const arrayOfBalancesArgSpec = arrayOfBalancesArg.spec as spec.Array;
+  const balanceSpec = arrayOfBalancesArgSpec.items as spec.Balance;
+  
+  balanceSpec.currency = {
+    lookup: {
+      match: '^(?<prefix>(?:[a-zA-Z0-9-_]+\.)*?)(?:[a-zA-Z0-9-_]+)\.(?<index>[0-9]+)$',
+      replace: `$<prefix>${arrayOfCurrenciesArg.name}.$<index>`,
+    },
+  };
+}
+
+function asOneToOne(ctx: AutomagicContext, event: EventSpec): void {
+  const balanceArg = event.args.find(item => isBalance(item.spec))!;
+  const balanceArgSpec = balanceArg.spec as spec.Balance;
+  const currencyArg = event.args.find(item => isCurrency(item.spec))!;
+  
+  balanceArgSpec.currency = {
+    lookup: {
+      match: '^.*$',
+      replace: currencyArg.name,
+    },
+  };
 }
 
 function asDefault(ctx: AutomagicContext, event: EventSpec): void {
-  const balanceArg = event.args.find(item => item.spec.type == 'balance')!;
-  const balanceArgSpec: Balance = balanceArg.spec as Balance;
+  const balanceArg = event.args.find(item => isBalance(item.spec))!;
+  const balanceArgSpec = balanceArg.spec as spec.Balance;
   
   balanceArgSpec.currency = { plain: ctx.about.chain.tokens[0] };
 }
 
 export function detectBalanceCurrency(ctx: AutomagicContext, event: EventSpec): void {
-  const balanceArgsCount = countArgs(event, 'balance');
-  const currencyArgsCount = countArgs(event, 'currency');
+  const balanceArgsCount = countArgs(event, isBalance);
+  const currencyArgsCount = countArgs(event, isCurrency);
+  const arrayOfBalancesArgsCount = countArgs(event, isArrayOfBalances);
+  const arrayOfCurrenciesArgsCount = countArgs(event, isArrayOfCurrencies);
   
-  if (balanceArgsCount == 1 && currencyArgsCount == 1) {
+  if (arrayOfBalancesArgsCount == 1 && arrayOfCurrenciesArgsCount == 1) {
+    asParallelArrays(ctx, event);
+  } else if (balanceArgsCount == 1 && currencyArgsCount == 1) {
     asOneToOne(ctx, event);
   } else if (balanceArgsCount == 1 && currencyArgsCount == 0) {
     asDefault(ctx, event);

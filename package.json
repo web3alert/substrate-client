@@ -1,6 +1,6 @@
 {
   "name": "@web3alert/substrate-client",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Substrate client for online chain monitoring",
   "keywords": [
     "substrate"
@@ -18,9 +18,11 @@
     "@polkadot/api": "^8.9.1",
     "@polkadot/api-augment": "^8.9.1",
     "@polkadot/types": "^8.9.1",
-    "change-case": "^4.1.2"
+    "change-case": "^4.1.2",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.182",
     "@types/node": "^18.0.0",
     "typescript": "^4.7.4"
   }
