@@ -59,10 +59,13 @@ function asOneToOne(ctx: AutomagicContext, event: EventSpec): void {
 }
 
 function asDefault(ctx: AutomagicContext, event: EventSpec): void {
-  const balanceArg = event.args.find(item => isBalance(item.spec))!;
-  const balanceArgSpec = balanceArg.spec as spec.Balance;
-  
-  balanceArgSpec.currency = { plain: ctx.about.chain.tokens[0] };
+  for (const arg of event.args) {
+    if (isBalance(arg.spec)) {
+      const asBalance = arg.spec as spec.Balance;
+      
+      asBalance.currency = { plain: ctx.about.chain.tokens[0] };
+    }
+  }
 }
 
 export function detectBalanceCurrency(ctx: AutomagicContext, event: EventSpec): void {
@@ -75,7 +78,7 @@ export function detectBalanceCurrency(ctx: AutomagicContext, event: EventSpec): 
     asParallelArrays(ctx, event);
   } else if (balanceArgsCount == 1 && currencyArgsCount == 1) {
     asOneToOne(ctx, event);
-  } else if (balanceArgsCount == 1 && currencyArgsCount == 0) {
+  } else if (balanceArgsCount > 0 && currencyArgsCount == 0) {
     asDefault(ctx, event);
   }
 }

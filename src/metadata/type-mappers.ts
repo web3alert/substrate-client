@@ -39,6 +39,7 @@ export type Mapper = (
 ) => Handler;
 
 const RE_VEC = /^Vec<(.+)>$/;
+const RE_TUPLE = /^\(((?:[a-zA-Z0-9-_]+,?)*)\)$/;
 
 const unknown: Handler = {
   spec: spec.unknown(),
@@ -62,6 +63,51 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
   },
   [TypeDefInfo.Plain]: (ctx, source, path) => {
     return ctx.primitives.get(ctx, source, path);
+  },
+  [TypeDefInfo.Struct]: (ctx, source, path) => {
+    const subs = (source.sub! as TypeDef[]).map(item => ({ ...item }));
+    
+    const props: Record<string, spec.Spec> = {};
+    const parsers: Record<string, parser.Parser> = {};
+    
+    for (const sub of subs) {
+      const name = sub.name!;
+      const handler = ctx.wrappers.get(ctx, sub, `${path}.${name}`);
+      
+      props[name] = handler.spec;
+      parsers[name] = handler.parse;
+    }
+    
+    return {
+      spec: spec.object({ props }),
+      parse: parser.object({ propParsers: parsers }),
+    };
+  },
+  [TypeDefInfo.Tuple]: (ctx, source, path) => {
+    const subs = (source.sub! as TypeDef[]).map(item => ({ ...item }));
+    
+    if (source.typeName) {
+      const match = source.typeName.match(RE_TUPLE);
+      
+      if (match) {
+        const names = match[1].split(',');
+        
+        if (subs.length == names.length) {
+          for (let i = 0; i < subs.length; i++) {
+            subs[i].typeName = names[i];
+          }
+        }
+      }
+    }
+    
+    const items = subs.map((sub, index) => {
+      return ctx.wrappers.get(ctx, sub, `${path}[${index}]`);
+    });
+    
+    return {
+      spec: spec.tuple({ items: items.map(item => item.spec) }),
+      parse: parser.tuple({ itemParsers: items.map(item => item.parse) }),
+    };
   },
   [TypeDefInfo.Vec]: (ctx, source, path) => {
     const sub = { ...source.sub! as TypeDef };
@@ -129,11 +175,13 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'SignedFixedPoint',
+    'UnsignedFixedPoint', 'SignedFixedPoint',
   ], (ctx, source, path) => {
     return {
-      spec: spec.bigint(),
-      parse: parser.fixedPoint({ decimals: 18 }),
+      spec: spec.balance(),
+      parse: parser.balance({
+        parseRaw: parser.fixedPoint({ decimals: 18 }),
+      }),
     };
   }),
   bind([
@@ -149,7 +197,15 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   ], (ctx, source, path) => {
     return {
       spec: spec.currency(),
-      parse: parser.raw(),
+      parse: (value, ctx) => {
+        const raw = value.toJSON() as any;
+        
+        if (typeof raw == 'object' && 'token' in raw) {
+          return raw['token'];
+        } else {
+          return raw;
+        }
+      },
     };
   }),
   bind([

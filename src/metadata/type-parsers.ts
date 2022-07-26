@@ -1,7 +1,9 @@
 import _ from 'lodash';
 import type {
-  Vec,
   Int,
+  Struct,
+  Vec,
+  Tuple,
 } from '@polkadot/types';
 import type {
   Codec,
@@ -60,10 +62,16 @@ export function fixedPoint(options: FixedPointOptions): Parser<number> {
   }
 }
 
-export function balance(): Parser<number> {
+export type BalanceOptions = {
+  parseRaw?: Parser<number>;
+};
+
+export function balance(options?: BalanceOptions): Parser<number> {
+  const parseRaw: Parser<number> = options?.parseRaw || raw() as Parser<number>;
+  
   return (value, ctx) => {
     const specAsBalance = ctx.spec as spec.Balance;
-    const raw = value.toJSON() as number;
+    const raw = parseRaw(value, ctx);
     
     if (specAsBalance.currency) {
       let currency: CurrencyInfo | undefined = undefined;
@@ -105,6 +113,35 @@ export function string(): Parser<string> {
   return value => value.toString() as string;
 }
 
+export type ObjectOptions = {
+  propParsers: Record<string, Parser>;
+};
+
+export function object(options: ObjectOptions): Parser<Record<string, AnyJson>> {
+  const {
+    propParsers,
+  } = options;
+  
+  const keys = Object.keys(propParsers);
+  
+  return (value, ctx) => {
+    const specAsObject = ctx.spec as spec.Object;
+    const asStruct = value as Struct;
+    
+    const result: Record<string, AnyJson> = {};
+    for (const key of keys) {
+      result[key] = propParsers[key](asStruct.get(key)!, {
+        currencies: ctx.currencies,
+        path: [...ctx.path, key],
+        spec: specAsObject.props[key],
+        rawArgs: ctx.rawArgs,
+      });
+    }
+    
+    return result;
+  };
+}
+
 export type ArrayOptions<T extends AnyJson> = {
   parseItem: Parser<T>;
 };
@@ -123,6 +160,32 @@ export function array<T extends AnyJson = AnyJson>(options: ArrayOptions<T>): Pa
         currencies: ctx.currencies,
         path: [...ctx.path, '' + index],
         spec: specAsArray.items,
+        rawArgs: ctx.rawArgs,
+      });
+    });
+  };
+}
+
+export type TupleOptions = {
+  itemParsers: Parser[];
+};
+
+export function tuple(options: TupleOptions): Parser<AnyJson[]> {
+  const {
+    itemParsers,
+  } = options;
+  
+  return (value, ctx) => {
+    const specAsTuple = ctx.spec as spec.Tuple;
+    const asTuple = value as Tuple;
+    
+    return asTuple.map((item, index) => {
+      const parseItem = itemParsers[index];
+      
+      return parseItem(item, {
+        currencies: ctx.currencies,
+        path: [...ctx.path, '' + index],
+        spec: specAsTuple.items[index],
         rawArgs: ctx.rawArgs,
       });
     });

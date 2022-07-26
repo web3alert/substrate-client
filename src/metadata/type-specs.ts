@@ -80,13 +80,25 @@ export type Primitive =
   | Address
 ;
 
+export type Object = {
+  type: 'object';
+  props: Record<string, Spec>;
+};
+
 export type Array = {
   type: 'array';
   items: Spec;
 };
 
+export type Tuple = {
+  type: 'tuple';
+  items: Spec[];
+};
+
 export type Wrapper =
+  | Object
   | Array
+  | Tuple
 ;
 
 export type Spec =
@@ -145,10 +157,26 @@ export function address(options: AddressOptions): Address {
   return { type: 'address', ...options };
 }
 
+export type ObjectOptions = {
+  props: Record<string, Spec>;
+};
+
+export function object(options: ObjectOptions): Object {
+  return { type: 'object', ...options };
+};
+
 export type ArrayOptions = {
   items: Spec;
 };
 
 export function array(options: ArrayOptions): Array {
   return { type: 'array', ...options };
+}
+
+export type TupleOptions = {
+  items: Spec[];
+};
+
+export function tuple(options: TupleOptions): Tuple {
+  return { type: 'tuple', ...options };
 }
