@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import type {
   Int,
+  BTreeMap,
   Struct,
   Vec,
   Tuple,
@@ -111,6 +112,42 @@ export function balance(options?: BalanceOptions): Parser<number> {
 
 export function string(): Parser<string> {
   return value => value.toString() as string;
+}
+
+export type MapOptions = {
+  keysParser: Parser<string | number>;
+  valuesParser: Parser;
+};
+
+export function map(options: MapOptions): Parser<Record<string | number, AnyJson>> {
+  const {
+    keysParser,
+    valuesParser,
+  } = options;
+  
+  return (value, ctx) => {
+    const specAsMap = ctx.spec as spec.Map;
+    const asMap = value as BTreeMap;
+    
+    const result: Record<string | number, AnyJson> = {};
+    for (const [key, value] of asMap.entries()) {
+      const keyDecoded = keysParser(key, {
+        currencies: ctx.currencies,
+        path: ctx.path,
+        spec: specAsMap.keys,
+        rawArgs: ctx.rawArgs,
+      });
+      
+      result[keyDecoded] = valuesParser(value, {
+        currencies: ctx.currencies,
+        path: [...ctx.path, '' + keyDecoded],
+        spec: specAsMap.values,
+        rawArgs: ctx.rawArgs,
+      });
+    }
+    
+    return result;
+  };
 }
 
 export type ObjectOptions = {

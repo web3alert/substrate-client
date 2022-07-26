@@ -5,10 +5,15 @@ import {
   Result,
   buildEventName,
 } from '../utils';
+import type { Filter } from '../filter';
 import type { TypeRegistry } from './type-registry';
 import { formatDocs } from './format-docs';
 
-export function parseCalls(source: MetadataV14, types: TypeRegistry): Result<EventSpec> {
+export function parseCalls(
+  source: MetadataV14,
+  types: TypeRegistry,
+  filter: Filter,
+): Result<EventSpec> {
   const result = new Result<EventSpec>();
   
   for (const pallet of source.pallets) {
@@ -30,6 +35,10 @@ export function parseCalls(source: MetadataV14, types: TypeRegistry): Result<Eve
     for (const variant of variants) {
       const callName = variant.name.toString();
       const name = buildEventName({ kind: 'call', module: moduleName, event: callName });
+      
+      if (!filter.match(name.full)) {
+        continue;
+      }
       
       const docs = variant.docs.join('\n');
       

@@ -4,6 +4,7 @@ import type {
   About,
   EventSpec,
 } from '../types';
+import type { Filter } from '../filter';
 import { parse } from './parse';
 import { CurrencyRegistry } from './currency-registry';
 import { TypeRegistry } from './type-registry';
@@ -11,6 +12,7 @@ import { TypeRegistry } from './type-registry';
 export interface MetadataOptions {
   about: About;
   source: MetadataV14;
+  filter: Filter;
 }
 
 export class Metadata {
@@ -26,6 +28,7 @@ export class Metadata {
     const {
       about,
       source,
+      filter,
     } = options;
     
     const types = new TypeRegistry({
@@ -37,7 +40,7 @@ export class Metadata {
       about,
     });
     
-    const parsed = parse(source, types);
+    const parsed = parse(source, types, filter);
     
     this.index = new Map();
     for (const event of parsed.items) {

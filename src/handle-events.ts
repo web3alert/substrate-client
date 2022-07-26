@@ -1,4 +1,5 @@
 import type { Event } from './types';
+import type { Filter } from './filter';
 import type { EventRecord } from './event-record';
 import type { Metadata } from './metadata';
 import {
@@ -12,6 +13,7 @@ import {
 } from './error';
 
 export type HandleEventsOptions = {
+  filter: Filter;
   metadata: Metadata;
   blockNumber: number;
   eventRecords: EventRecord[];
@@ -19,6 +21,7 @@ export type HandleEventsOptions = {
 
 export function handleEvents(options: HandleEventsOptions): Result<Event> {
   const {
+    filter,
     metadata,
     blockNumber,
     eventRecords,
@@ -34,6 +37,10 @@ export function handleEvents(options: HandleEventsOptions): Result<Event> {
       module: event.section,
       event: event.method,
     });
+    
+    if (!filter.match(eventName.full)) {
+      continue;
+    }
     
     try {
       result.items.push(handleEvent({

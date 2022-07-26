@@ -52,6 +52,23 @@ const skip: Handler = {
 };
 
 export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
+  // [TypeDefInfo.BTreeMap]:(ctx, source, path) => {
+  //   const subs = (source.sub! as TypeDef[]).map(item => ({ ...item }));
+    
+  //   const keys = ctx.wrappers.get(ctx, subs[0], `${path}(key)`);
+  //   const values = ctx.wrappers.get(ctx, subs[1], `${path}(value)`);
+    
+  //   return {
+  //     spec: spec.map({
+  //       keys: keys.spec as spec.String | spec.Int,
+  //       values: values.spec,
+  //     }),
+  //     parse: parser.map({
+  //       keysParser: keys.parse as parser.Parser<string | number>,
+  //       valuesParser: values.parse,
+  //     }),
+  //   };
+  // },
   [TypeDefInfo.Compact]: (ctx, source, path) => {
     const sub = { ...source.sub! as TypeDef };
     
@@ -64,6 +81,15 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
   [TypeDefInfo.Plain]: (ctx, source, path) => {
     return ctx.primitives.get(ctx, source, path);
   },
+  // [TypeDefInfo.Si]: (ctx, source, path) => {
+  //   const sub = { ...ctx.lookup.getTypeDef(source.lookupIndex!) };
+    
+  //   if (source.typeName) {
+  //     sub.typeName = source.typeName;
+  //   }
+    
+  //   return ctx.wrappers.get(ctx, sub, path);
+  // },
   [TypeDefInfo.Struct]: (ctx, source, path) => {
     const subs = (source.sub! as TypeDef[]).map(item => ({ ...item }));
     
@@ -175,7 +201,17 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'UnsignedFixedPoint', 'SignedFixedPoint',
+    'UnsignedFixedPoint',
+  ], (ctx, source, path) => {
+    return {
+      spec: spec.balance(),
+      parse: parser.balance({
+        parseRaw: parser.fixedPoint({ decimals: 10 }),
+      }),
+    };
+  }),
+  bind([
+    'SignedFixedPoint',
   ], (ctx, source, path) => {
     return {
       spec: spec.balance(),

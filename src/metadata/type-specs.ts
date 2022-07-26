@@ -80,6 +80,12 @@ export type Primitive =
   | Address
 ;
 
+export type Map = {
+  type: 'map';
+  keys: String | Int;
+  values: Spec;
+};
+
 export type Object = {
   type: 'object';
   props: Record<string, Spec>;
@@ -96,6 +102,7 @@ export type Tuple = {
 };
 
 export type Wrapper =
+  | Map
   | Object
   | Array
   | Tuple
@@ -156,6 +163,15 @@ export type AddressOptions = AddressOptionsSubstrate | AddressOptionsEvm;
 export function address(options: AddressOptions): Address {
   return { type: 'address', ...options };
 }
+
+export type MapOptions = {
+  keys: String | Int;
+  values: Spec;
+};
+
+export function map(options: MapOptions): Map {
+  return { type: 'map', ...options };
+};
 
 export type ObjectOptions = {
   props: Record<string, Spec>;

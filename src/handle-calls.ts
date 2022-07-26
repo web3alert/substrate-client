@@ -15,6 +15,7 @@ import type {
   EventName,
   Event,
 } from './types';
+import type { Filter } from './filter';
 import type { EventRecord } from './event-record';
 import type { Metadata } from './metadata';
 import { handleEvent } from './handle-event';
@@ -114,6 +115,7 @@ function castCallArgByName<T extends Codec>(
 }
 
 interface HandleCallOptions {
+  filter: Filter;
   metadata: Metadata;
   registry: Registry;
   blockNumber: number;
@@ -123,6 +125,7 @@ interface HandleCallOptions {
 
 function handleCall(options: HandleCallOptions): Result<Event> {
   const {
+    filter,
     metadata,
     registry,
     blockNumber,
@@ -138,6 +141,7 @@ function handleCall(options: HandleCallOptions): Result<Event> {
       
       for (const batchedCall of batchedCalls) {
         result.merge(handleCall({
+          filter,
           metadata,
           registry,
           blockNumber,
@@ -173,6 +177,7 @@ function handleCall(options: HandleCallOptions): Result<Event> {
       }
       
       result.merge(handleCall({
+        filter,
         metadata,
         registry,
         blockNumber,
@@ -187,7 +192,7 @@ function handleCall(options: HandleCallOptions): Result<Event> {
           signer,
         },
       }));
-    } else {
+    } else if (filter.match(call.name.full)) {
       const event = handleEvent({
         metadata,
         blockNumber,
@@ -230,6 +235,7 @@ function handleCall(options: HandleCallOptions): Result<Event> {
 }
 
 export type HandleCallsOptions = {
+  filter: Filter;
   metadata: Metadata;
   registry: Registry;
   block: Block;
@@ -238,6 +244,7 @@ export type HandleCallsOptions = {
 
 export function handleCalls(options: HandleCallsOptions): Result<Event> {
   const {
+    filter,
     metadata,
     registry,
     block,
@@ -252,6 +259,7 @@ export function handleCalls(options: HandleCallsOptions): Result<Event> {
     try {
       if (extrinsicSucceeded(eventRecords, i)) {
         result.merge(handleCall({
+          filter,
           metadata,
           registry,
           blockNumber: block.header.number.toNumber(),

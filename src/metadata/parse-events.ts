@@ -6,6 +6,7 @@ import {
   Result,
   buildEventName,
 } from '../utils';
+import type { Filter } from '../filter';
 import type { TypeRegistry } from './type-registry';
 import { formatDocs } from './format-docs';
 
@@ -51,7 +52,11 @@ function parseDocs(docs: string): ParsedDocs {
   };
 }
 
-export function parseEvents(source: MetadataV14, types: TypeRegistry): Result<EventSpec> {
+export function parseEvents(
+  source: MetadataV14,
+  types: TypeRegistry,
+  filter: Filter,
+): Result<EventSpec> {
   const result = new Result<EventSpec>();
   
   for (const pallet of source.pallets) {
@@ -73,6 +78,10 @@ export function parseEvents(source: MetadataV14, types: TypeRegistry): Result<Ev
     for (const variant of variants) {
       const eventName = variant.name.toString();
       const name = buildEventName({ kind: 'event', module: moduleName, event: eventName });
+      
+      if (!filter.match(name.full)) {
+        continue;
+      }
       
       const rawDocs = variant.docs.join('\n');
       const parsedDocs = parseDocs(rawDocs);

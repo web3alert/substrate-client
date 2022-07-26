@@ -1,6 +1,7 @@
 import type { MetadataV14 } from '@polkadot/types/interfaces';
 import type { EventSpec } from '../types';
 import { Result } from '../utils';
+import type { Filter } from '../filter';
 import type { TypeRegistry } from './type-registry';
 import { parseEvents } from './parse-events';
 import { parseCalls } from './parse-calls';
@@ -9,11 +10,15 @@ import {
   applyAutomagic,
 } from './automagic';
 
-export function parse(source: MetadataV14, types: TypeRegistry): Result<EventSpec> {
+export function parse(
+  source: MetadataV14,
+  types: TypeRegistry,
+  filter: Filter,
+): Result<EventSpec> {
   const result = new Result<EventSpec>();
   
-  result.merge(parseEvents(source, types));
-  result.merge(parseCalls(source, types));
+  result.merge(parseEvents(source, types, filter));
+  result.merge(parseCalls(source, types, filter));
   
   result.items.sort((a, b) => {
     if (a.name.full < b.name.full) {

@@ -11,6 +11,7 @@ import type {
 import type { EventRecord } from './event-record';
 import { Result } from './utils';
 import { Metadata } from './metadata';
+import { Filter } from './filter';
 import { handleEvents } from './handle-events';
 import { handleCalls } from './handle-calls';
 
@@ -25,15 +26,22 @@ const SUPPORTED_METADATA_VERSION = 14;
 
 export type SubstrateClientOptions = {
   defaultAddressFormat?: AddressFormat;
+  filter?: {
+    patterns: string[];
+  };
 };
 
 export class SubstrateClient {
   public defaultAddressFormat: AddressFormat;
   public api!: ApiPromise;
+  public filter: Filter;
   public metadata!: Metadata;
   
   constructor(options?: SubstrateClientOptions) {
     this.defaultAddressFormat = options?.defaultAddressFormat ?? 'substrate';
+    this.filter = new Filter({
+      patterns: options?.filter?.patterns ?? [],
+    });
   }
   
   public async connect(wsUrl: string): Promise<void> {
@@ -121,6 +129,7 @@ export class SubstrateClient {
     this.metadata = new Metadata({
       about,
       source: apiAt.registry.metadata,
+      filter: this.filter,
     });
   }
   
@@ -152,12 +161,14 @@ export class SubstrateClient {
     const result = new Result<Event>();
     
     result.merge(handleEvents({
+      filter: this.filter,
       metadata: this.metadata,
       blockNumber,
       eventRecords,
     }));
     
     result.merge(handleCalls({
+      filter: this.filter,
       metadata: this.metadata,
       registry: apiAt.registry,
       eventRecords,
