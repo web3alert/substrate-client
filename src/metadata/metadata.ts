@@ -18,6 +18,7 @@ export interface MetadataOptions {
 export class Metadata {
   private index: Map<string, EventSpec>;
   
+  public runtimeVersion: number;
   public about: About;
   public types: TypeRegistry;
   public currencies: CurrencyRegistry;
@@ -47,6 +48,7 @@ export class Metadata {
       this.index.set(event.name.full, event);
     }
     
+    this.runtimeVersion = about.chain.version;
     this.about = about;
     this.types = types;
     this.currencies = currencies;

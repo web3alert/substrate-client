@@ -1,3 +1,4 @@
+import type { BlockHash } from '@polkadot/types/interfaces';
 import {
   WsProvider,
   ApiPromise,
@@ -15,11 +16,13 @@ import { Filter } from './filter';
 import { handleEvents } from './handle-events';
 import { handleCalls } from './handle-calls';
 
-type ApiAt = ApiDecoration<'promise'>;
+export type ApiAt = ApiDecoration<'promise'>;
 
-type InternalAbout = {
-  about: About;
+export type BlockPointer = {
+  blockNumber: number;
+  blockHash: BlockHash;
   apiAt: ApiAt;
+  runtimeVersion: number;
 };
 
 const SUPPORTED_METADATA_VERSION = 14;
@@ -59,7 +62,9 @@ export class SubstrateClient {
     
     try {
       const currentBlockNumber = await this.currentBlockNumber();
-      await this.updateCurrentMetadata(currentBlockNumber);
+      const pointer = await this.blockPointer(currentBlockNumber);
+      
+      await this.updateCurrentMetadata(pointer);
     } catch (err) {
       await this.api.disconnect();
       
@@ -71,15 +76,32 @@ export class SubstrateClient {
     await this.api.disconnect();
   }
   
-  private async internalAbout(blockNumber: number): Promise<InternalAbout> {
+  public async currentBlockNumber(): Promise<number> {
+    const blockHash = await this.api.rpc.chain.getFinalizedHead();
+    const blockHeader = await this.api.rpc.chain.getHeader(blockHash);
+    
+    return blockHeader.number.toNumber();
+  }
+  
+  public async blockPointer(blockNumber: number): Promise<BlockPointer> {
+    const blockHash = await this.api.rpc.chain.getBlockHash(blockNumber);
+    const apiAt = await this.api.at(blockHash);
+    const runtimeVersion = apiAt.consts.system.version.specVersion.toNumber();
+    
+    return {
+      blockNumber,
+      blockHash,
+      apiAt,
+      runtimeVersion,
+    };
+  }
+  
+  public async about(pointer: BlockPointer): Promise<About> {
     const nodeName = await this.api.rpc.system.name();
     const nodeVersion = await this.api.rpc.system.version();
     
-    const blockHash = await this.api.rpc.chain.getBlockHash(blockNumber);
-    const apiAt = await this.api.at(blockHash);
-    
-    const runtimeVersion = apiAt.consts.system.version;
-    const chainProperties = apiAt.registry.getChainProperties();
+    const runtimeVersion = pointer.apiAt.consts.system.version;
+    const chainProperties = pointer.apiAt.registry.getChainProperties();
     
     if (!chainProperties) {
       throw new Error('cannot retrive chain properties');
@@ -91,60 +113,40 @@ export class SubstrateClient {
         version: nodeVersion.toString(),
       },
       block: {
-        number: blockNumber,
-        hash: blockHash.toHex(),
+        number: pointer.blockNumber,
+        hash: pointer.blockHash.toHex(),
       },
       chain: {
         name: runtimeVersion.specName.toString(),
         version: runtimeVersion.specVersion.toNumber(),
         defaultAddressFormat: this.defaultAddressFormat,
-        ss58Prefix: apiAt.registry.chainSS58,
-        tokens: apiAt.registry.chainTokens,
-        decimals: apiAt.registry.chainDecimals,
+        ss58Prefix: pointer.apiAt.registry.chainSS58,
+        tokens: pointer.apiAt.registry.chainTokens,
+        decimals: pointer.apiAt.registry.chainDecimals,
       },
     };
-    
-    return {
-      about,
-      apiAt,
-    };
-  }
-  
-  public async currentBlockNumber(): Promise<number> {
-    const blockHash = await this.api.rpc.chain.getFinalizedHead();
-    const blockHeader = await this.api.rpc.chain.getHeader(blockHash);
-    
-    return blockHeader.number.toNumber();
-  }
-  
-  public async about(blockNumber: number): Promise<About> {
-    const { about } = await this.internalAbout(blockNumber);
     
     return about;
   }
   
-  public async updateCurrentMetadata(blockNumber: number): Promise<void> {
-     const { about, apiAt } = await this.internalAbout(blockNumber);
+  public async updateCurrentMetadata(pointer: BlockPointer): Promise<void> {
+    const about = await this.about(pointer);
     
     this.metadata = new Metadata({
       about,
-      source: apiAt.registry.metadata,
+      source: pointer.apiAt.registry.metadata,
       filter: this.filter,
     });
   }
   
-  public async handleBlock(blockNumber: number): Promise<Result<Event>> {
-    const blockHash = await this.api.rpc.chain.getBlockHash(blockNumber);
-    const apiAt = await this.api.at(blockHash);
-    const runtimeVersion = apiAt.consts.system.version.specVersion.toNumber();
-    
-    if (runtimeVersion != this.metadata.about.chain.version) {
-      // TODO: throw detailed error
-      throw new Error('block runtime version is different from current metadata runtime version');
+  public async handleBlock(pointer: BlockPointer): Promise<Result<Event>> {
+    if (pointer.runtimeVersion != this.metadata.runtimeVersion) {
+      throw new Error(`block runtime version '${pointer.runtimeVersion}' is different from ` +
+        `current metadata runtime version '${this.metadata.runtimeVersion}'`);
     }
     
-    const signedBlock = await this.api.rpc.chain.getBlock(blockHash);
-    const eventRecordsRaw = await apiAt.query.system.events();
+    const signedBlock = await this.api.rpc.chain.getBlock(pointer.blockHash);
+    const eventRecordsRaw = await pointer.apiAt.query.system.events();
     
     const eventRecords: EventRecord[] = eventRecordsRaw.map(item => {
       const index = (item.phase.isApplyExtrinsic)
@@ -163,14 +165,14 @@ export class SubstrateClient {
     result.merge(handleEvents({
       filter: this.filter,
       metadata: this.metadata,
-      blockNumber,
+      blockNumber: pointer.blockNumber,
       eventRecords,
     }));
     
     result.merge(handleCalls({
       filter: this.filter,
       metadata: this.metadata,
-      registry: apiAt.registry,
+      registry: pointer.apiAt.registry,
       eventRecords,
       block: signedBlock.block,
     }));
