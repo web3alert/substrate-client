@@ -171,7 +171,11 @@ function handleCall(options: HandleCallOptions): Result<Event> {
       let signer = call.signer;
       
       if (PROXY_CALLS.includes(call.name.short)) {
-        const realSigner = castCallArgByName<AccountId>(call, 'real', 'AccountId32');
+        const addressType = (metadata.about.chain.defaultAddressFormat == 'evm')
+          ? 'AccountId20'
+          : 'AccountId32'
+        ;
+        const realSigner = castCallArgByName<AccountId>(call, 'real', addressType);
         
         signer = realSigner.toString();
       }
