@@ -78,6 +78,9 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
     
     return ctx.wrappers.get(ctx, sub, path);
   },
+  [TypeDefInfo.Enum]: (ctx, source, path) => {
+    return DEFAULT_WRAPPER_MAPPERS[TypeDefInfo.Struct]!(ctx, source, path);
+  },
   [TypeDefInfo.Plain]: (ctx, source, path) => {
     return ctx.primitives.get(ctx, source, path);
   },
