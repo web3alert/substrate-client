@@ -3,6 +3,7 @@ import type {
   Int,
   BTreeMap,
   Struct,
+  Enum,
   Vec,
   Tuple,
 } from '@polkadot/types';
@@ -174,6 +175,32 @@ export function object(options: ObjectOptions): Parser<Record<string, AnyJson>> 
         rawArgs: ctx.rawArgs,
       });
     }
+    
+    return result;
+  };
+}
+
+export type EnumObjectOptions = {
+  propParsers: Record<string, Parser>;
+};
+
+export function enumObject(options: EnumObjectOptions): Parser<Record<string, AnyJson>> {
+  const {
+    propParsers,
+  } = options;
+  
+  return (value, ctx) => {
+    const specAsObject = ctx.spec as spec.Object;
+    const asEnum = value as Enum;
+    
+    const result: Record<string, AnyJson> = {};
+    const key = asEnum.type;
+    result[key] = propParsers[key](asEnum.value, {
+      currencies: ctx.currencies,
+      path: [...ctx.path, key],
+      spec: specAsObject.props[key],
+      rawArgs: ctx.rawArgs,
+    });
     
     return result;
   };

@@ -79,7 +79,23 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
     return ctx.wrappers.get(ctx, sub, path);
   },
   [TypeDefInfo.Enum]: (ctx, source, path) => {
-    return DEFAULT_WRAPPER_MAPPERS[TypeDefInfo.Struct]!(ctx, source, path);
+    const subs = (source.sub! as TypeDef[]).map(item => ({ ...item }));
+    
+    const props: Record<string, spec.Spec> = {};
+    const parsers: Record<string, parser.Parser> = {};
+    
+    for (const sub of subs) {
+      const name = sub.name!;
+      const handler = ctx.wrappers.get(ctx, sub, `${path}.${name}`);
+      
+      props[name] = handler.spec;
+      parsers[name] = handler.parse;
+    }
+    
+    return {
+      spec: spec.object({ props }),
+      parse: parser.enumObject({ propParsers: parsers }),
+    };
   },
   [TypeDefInfo.Plain]: (ctx, source, path) => {
     return ctx.primitives.get(ctx, source, path);
