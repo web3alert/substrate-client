@@ -1,4 +1,5 @@
 import type { BlockHash } from '@polkadot/types/interfaces';
+import type { RegistryTypes } from '@polkadot/types/types';
 import {
   WsProvider,
   ApiPromise,
@@ -25,7 +26,9 @@ export type BlockPointer = {
   runtimeVersion: number;
 };
 
-const SUPPORTED_METADATA_VERSION = 14;
+export type SubstrateClientConnectOptions = {
+  types?: RegistryTypes;
+};
 
 export type SubstrateClientOptions = {
   defaultAddressFormat?: AddressFormat;
@@ -47,18 +50,11 @@ export class SubstrateClient {
     });
   }
   
-  public async connect(wsUrl: string): Promise<void> {
+  public async connect(wsUrl: string, options?: SubstrateClientConnectOptions): Promise<void> {
     this.api = await ApiPromise.create({
       provider: new WsProvider(wsUrl),
+      types: options?.types,
     });
-    
-    const metadataVersion = this.api.runtimeMetadata.version;
-    
-    if (metadataVersion != SUPPORTED_METADATA_VERSION) {
-      await this.api.disconnect();
-      
-      throw new Error(`runtime metadata version is '${metadataVersion}', which is not supported`);
-    }
     
     try {
       const currentBlockNumber = await this.currentBlockNumber();
