@@ -26,11 +26,9 @@ export type BlockPointer = {
   runtimeVersion: number;
 };
 
-export type SubstrateClientConnectOptions = {
-  types?: RegistryTypes;
-};
-
 export type SubstrateClientOptions = {
+  wsUrl: string;
+  customClientTypes?: RegistryTypes;
   defaultAddressFormat?: AddressFormat;
   filter?: {
     patterns: string[];
@@ -38,22 +36,33 @@ export type SubstrateClientOptions = {
 };
 
 export class SubstrateClient {
+  public wsUrl: string;
+  public customClientTypes?: RegistryTypes;
   public defaultAddressFormat: AddressFormat;
   public api!: ApiPromise;
   public filter: Filter;
   public metadata!: Metadata;
   
-  constructor(options?: SubstrateClientOptions) {
-    this.defaultAddressFormat = options?.defaultAddressFormat ?? 'substrate';
+  constructor(options: SubstrateClientOptions) {
+    const {
+      wsUrl,
+      customClientTypes,
+      defaultAddressFormat,
+      filter,
+    } = options;
+    
+    this.wsUrl = wsUrl;
+    this.customClientTypes = customClientTypes;
+    this.defaultAddressFormat = defaultAddressFormat ?? 'substrate';
     this.filter = new Filter({
-      patterns: options?.filter?.patterns ?? [],
+      patterns: filter?.patterns ?? [],
     });
   }
   
-  public async connect(wsUrl: string, options?: SubstrateClientConnectOptions): Promise<void> {
+  public async connect(): Promise<void> {
     this.api = await ApiPromise.create({
-      provider: new WsProvider(wsUrl),
-      types: options?.types,
+      provider: new WsProvider(this.wsUrl),
+      types: this.customClientTypes,
     });
     
     try {
