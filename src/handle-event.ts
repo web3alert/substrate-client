@@ -1,8 +1,6 @@
+import type { Codec } from '@polkadot/types/types';
 import type {
-  AnyJson,
-  Codec,
-} from '@polkadot/types/types';
-import type {
+  Object,
   EventName,
   Event,
 } from './types';
@@ -47,7 +45,7 @@ export function handleEvent(options: HandleEventOptions): Event {
     });
   }
   
-  const rawArgs: Record<string, AnyJson> = {};
+  const rawArgs: Object = {};
   for (let i = 0; i < event.argValues.length; i++) {
     const argValue = event.argValues[i];
     const argHandler = eventSpec.args[i];
@@ -55,7 +53,8 @@ export function handleEvent(options: HandleEventOptions): Event {
     rawArgs[argHandler.name] = argValue.toJSON();
   }
   
-  const params: Record<string, AnyJson> = {};
+  const raw: Object = {};
+  const human: Object = {};
   for (let i = 0; i < event.argValues.length; i++) {
     const argValue = event.argValues[i];
     const argHandler = eventSpec.args[i];
@@ -67,12 +66,16 @@ export function handleEvent(options: HandleEventOptions): Event {
       rawArgs,
     };
     
-    params[argHandler.name] = argHandler.parse(argValue, ctx);
+    raw[argHandler.name] = argHandler.parse.raw(argValue, ctx);
+    human[argHandler.name] = argHandler.parse.human(argValue, ctx);
   }
   
   return {
     name: event.name.full,
-    params,
+    params: {
+      raw,
+      human,
+    },
     payload: {
       block: blockNumber,
       index,

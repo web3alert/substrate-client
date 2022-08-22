@@ -1,6 +1,6 @@
 {
   "name": "@web3alert/substrate-client",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Substrate client for online chain monitoring",
   "keywords": [
     "substrate"

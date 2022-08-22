@@ -29,7 +29,10 @@ export type Context = {
 
 export type Handler = {
   spec: spec.Spec;
-  parse: parser.Parser;
+  parse: {
+    raw: parser.Parser;
+    human: parser.Parser;
+  };
 };
 
 export type Mapper = (
@@ -43,12 +46,18 @@ const RE_TUPLE = /^\(((?:[a-zA-Z0-9-_]+,?)*)\)$/;
 
 const unknown: Handler = {
   spec: spec.unknown(),
-  parse: parser.raw(),
+  parse: {
+    raw: parser.raw(),
+    human: parser.raw(),
+  },
 };
 
 const skip: Handler = {
   spec: spec.skip(),
-  parse: parser.raw(),
+  parse: {
+    raw: parser.raw(),
+    human: parser.raw(),
+  },
 };
 
 export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
@@ -82,19 +91,24 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
     const subs = (source.sub! as TypeDef[]).map(item => ({ ...item }));
     
     const props: Record<string, spec.Spec> = {};
-    const parsers: Record<string, parser.Parser> = {};
+    const parsersRaw: Record<string, parser.Parser> = {};
+    const parsersHuman: Record<string, parser.Parser> = {};
     
     for (const sub of subs) {
       const name = sub.name!;
       const handler = ctx.wrappers.get(ctx, sub, `${path}.${name}`);
       
       props[name] = handler.spec;
-      parsers[name] = handler.parse;
+      parsersRaw[name] = handler.parse.raw;
+      parsersHuman[name] = handler.parse.human;
     }
     
     return {
       spec: spec.object({ props }),
-      parse: parser.enumObject({ propParsers: parsers }),
+      parse: {
+        raw: parser.object({ propParsers: parsersRaw }),
+        human: parser.object({ propParsers: parsersHuman }),
+      },
     };
   },
   [TypeDefInfo.Plain]: (ctx, source, path) => {
@@ -113,19 +127,24 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
     const subs = (source.sub! as TypeDef[]).map(item => ({ ...item }));
     
     const props: Record<string, spec.Spec> = {};
-    const parsers: Record<string, parser.Parser> = {};
+    const parsersRaw: Record<string, parser.Parser> = {};
+    const parsersHuman: Record<string, parser.Parser> = {};
     
     for (const sub of subs) {
       const name = sub.name!;
       const handler = ctx.wrappers.get(ctx, sub, `${path}.${name}`);
       
       props[name] = handler.spec;
-      parsers[name] = handler.parse;
+      parsersRaw[name] = handler.parse.raw;
+      parsersHuman[name] = handler.parse.human;
     }
     
     return {
       spec: spec.object({ props }),
-      parse: parser.object({ propParsers: parsers }),
+      parse: {
+        raw: parser.object({ propParsers: parsersRaw }),
+        human: parser.object({ propParsers: parsersHuman }),
+      },
     };
   },
   [TypeDefInfo.Tuple]: (ctx, source, path) => {
@@ -151,7 +170,10 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
     
     return {
       spec: spec.tuple({ items: items.map(item => item.spec) }),
-      parse: parser.tuple({ itemParsers: items.map(item => item.parse) }),
+      parse: {
+        raw: parser.tuple({ itemParsers: items.map(item => item.parse.raw) }),
+        human: parser.tuple({ itemParsers: items.map(item => item.parse.human) }),
+      },
     };
   },
   [TypeDefInfo.Vec]: (ctx, source, path) => {
@@ -169,7 +191,10 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
     
     return {
       spec: spec.array({ items: itemsHandler.spec }),
-      parse: parser.array({ parseItem: itemsHandler.parse }),
+      parse: {
+        raw: parser.array({ parseItem: itemsHandler.parse.raw }),
+        human: parser.array({ parseItem: itemsHandler.parse.human }),
+      },
     };
   },
 };
@@ -192,7 +217,10 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   ], (ctx, source, path) => {
     return {
       spec: spec.skip(),
-      parse: parser.raw(),
+      parse: {
+        raw: parser.raw(),
+        human: parser.raw(),
+      },
     };
   }),
   bind([
@@ -200,7 +228,10 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   ], (ctx, source, path) => {
     return {
       spec: spec.bool(),
-      parse: parser.bool(),
+      parse: {
+        raw: parser.bool(),
+        human: parser.bool(),
+      },
     };
   }),
   bind([
@@ -208,7 +239,10 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   ], (ctx, source, path) => {
     return {
       spec: spec.int(),
-      parse: parser.int(),
+      parse: {
+        raw: parser.int(),
+        human: parser.int(),
+      },
     };
   }),
   bind([
@@ -216,27 +250,40 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   ], (ctx, source, path) => {
     return {
       spec: spec.bigint(),
-      parse: parser.bigint(),
+      parse: {
+        raw: parser.bigint(),
+        human: parser.bigint(),
+      },
     };
   }),
   bind([
     'UnsignedFixedPoint',
   ], (ctx, source, path) => {
+    const parseUnsignedFixedPoint = parser.balance({
+      parseRaw: parser.fixedPoint({ decimals: 18 }),
+    });
+    
     return {
       spec: spec.balance(),
-      parse: parser.balance({
-        parseRaw: parser.fixedPoint({ decimals: 10 }),
-      }),
+      parse: {
+        raw: parseUnsignedFixedPoint,
+        human: parseUnsignedFixedPoint,
+      },
     };
   }),
   bind([
     'SignedFixedPoint',
   ], (ctx, source, path) => {
+    const parseSignedFixedPoint = parser.balance({
+      parseRaw: parser.fixedPoint({ decimals: 18 }),
+    });
+    
     return {
       spec: spec.balance(),
-      parse: parser.balance({
-        parseRaw: parser.fixedPoint({ decimals: 18 }),
-      }),
+      parse: {
+        raw: parseSignedFixedPoint,
+        human: parseSignedFixedPoint,
+      },
     };
   }),
   bind([
@@ -244,22 +291,30 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   ], (ctx, source, path) => {
     return {
       spec: spec.balance(),
-      parse: parser.balance(),
+      parse: {
+        raw: parser.balance(),
+        human: parser.balance(),
+      },
     };
   }),
   bind([
     'CurrencyId',
   ], (ctx, source, path) => {
+    const parseCurrency: parser.Parser = (value, ctx) => {
+      const raw = value.toJSON() as any;
+      
+      if (typeof raw == 'object' && 'token' in raw) {
+        return raw['token'];
+      } else {
+        return raw;
+      }
+    };
+    
     return {
       spec: spec.currency(),
-      parse: (value, ctx) => {
-        const raw = value.toJSON() as any;
-        
-        if (typeof raw == 'object' && 'token' in raw) {
-          return raw['token'];
-        } else {
-          return raw;
-        }
+      parse: {
+        raw: parseCurrency,
+        human: parseCurrency,
       },
     };
   }),
@@ -268,7 +323,10 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   ], (ctx, source, path) => {
     return {
       spec: spec.string(),
-      parse: parser.human(),
+      parse: {
+        raw: parser.human(),
+        human: parser.human(),
+      },
     };
   }),
   bind([
@@ -276,7 +334,10 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   ], (ctx, source, path) => {
     return {
       spec: spec.hash(),
-      parse: parser.string(),
+      parse: {
+        raw: parser.string(),
+        human: parser.string(),
+      },
     };
   }),
   /*
@@ -290,7 +351,10 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   ], (ctx, source, path) => {
     return {
       spec: spec.address({ addressFormat: 'substrate', ss58Prefix: ctx.about.chain.ss58Prefix! }),
-      parse: parser.string(),
+      parse: {
+        raw: parser.string(),
+        human: parser.string(),
+      },
     };
   }),
   // TODO: check for AccountId32 compatibility
@@ -299,7 +363,10 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   ], (ctx, source, path) => {
     return {
       spec: spec.address({ addressFormat: 'substrate', ss58Prefix: ctx.about.chain.ss58Prefix! }),
-      parse: parser.string(),
+      parse: {
+        raw: parser.string(),
+        human: parser.string(),
+      },
     };
   }),
   // TODO: check for MultiAddress compatibility
@@ -308,7 +375,10 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   ], (ctx, source, path) => {
     return {
       spec: spec.address({ addressFormat: 'evm' }),
-      parse: parser.string(),
+      parse: {
+        raw: parser.string(),
+        human: parser.string(),
+      },
     };
   }),
 ];

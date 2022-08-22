@@ -209,15 +209,16 @@ function handleCall(options: HandleCallOptions): Result<Event> {
       });
       
       if (call.signer != undefined) {
-        if (event.params['signer'] != undefined) {
+        if (event.params.raw['signer'] != undefined) {
           throw error('call already has signer arg', {
             event: event.name,
-            fromArgs: event.params['signer'],
+            fromArgs: event.params.raw['signer'],
             fromHandling: call.signer,
           });
         }
         
-        event.params['signer'] = call.signer;
+        event.params.raw['signer'] = call.signer;
+        event.params.human['signer'] = call.signer;
       }
       
       result.items.push(event);

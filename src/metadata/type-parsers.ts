@@ -7,11 +7,12 @@ import type {
   Vec,
   Tuple,
 } from '@polkadot/types';
+import type { Codec } from '@polkadot/types/types';
 import type {
-  Codec,
-  AnyJson,
-} from '@polkadot/types/types';
-import type { CurrencyInfo } from '../types';
+  Json,
+  Object,
+  CurrencyInfo,
+} from '../types';
 import type { CurrencyRegistry } from './currency-registry';
 import type * as spec from './type-specs';
 
@@ -19,20 +20,20 @@ export type ParserContext = {
   currencies: CurrencyRegistry;
   path: string[];
   spec: spec.Spec;
-  rawArgs: Record<string, AnyJson>;
+  rawArgs: Object;
 };
 
-export type Parser<T extends AnyJson = AnyJson> = (value: Codec, ctx: ParserContext) => T;
+export type Parser<T extends Json = Json> = (value: Codec, ctx: ParserContext) => T;
 
 function isPlainCurrency(currency: spec.BalanceCurrency): currency is spec.BalancyCurrencyPlain {
   return 'plain' in currency;
 };
 
-export function raw(): Parser<AnyJson> {
+export function raw(): Parser<Json> {
   return value => value.toJSON();
 }
 
-export function human(): Parser<AnyJson> {
+export function human(): Parser<Json> {
   return value => value.toHuman();
 }
 
@@ -120,7 +121,7 @@ export type MapOptions = {
   valuesParser: Parser;
 };
 
-export function map(options: MapOptions): Parser<Record<string | number, AnyJson>> {
+export function map(options: MapOptions): Parser<Record<string | number, Json>> {
   const {
     keysParser,
     valuesParser,
@@ -130,7 +131,7 @@ export function map(options: MapOptions): Parser<Record<string | number, AnyJson
     const specAsMap = ctx.spec as spec.Map;
     const asMap = value as BTreeMap;
     
-    const result: Record<string | number, AnyJson> = {};
+    const result: Record<string | number, Json> = {};
     for (const [key, value] of asMap.entries()) {
       const keyDecoded = keysParser(key, {
         currencies: ctx.currencies,
@@ -155,7 +156,7 @@ export type ObjectOptions = {
   propParsers: Record<string, Parser>;
 };
 
-export function object(options: ObjectOptions): Parser<Record<string, AnyJson>> {
+export function object(options: ObjectOptions): Parser<Record<string, Json>> {
   const {
     propParsers,
   } = options;
@@ -166,7 +167,7 @@ export function object(options: ObjectOptions): Parser<Record<string, AnyJson>> 
     const specAsObject = ctx.spec as spec.Object;
     const asStruct = value as Struct;
     
-    const result: Record<string, AnyJson> = {};
+    const result: Object = {};
     for (const key of keys) {
       result[key] = propParsers[key](asStruct.get(key)!, {
         currencies: ctx.currencies,
@@ -184,7 +185,7 @@ export type EnumObjectOptions = {
   propParsers: Record<string, Parser>;
 };
 
-export function enumObject(options: EnumObjectOptions): Parser<Record<string, AnyJson>> {
+export function enumObject(options: EnumObjectOptions): Parser<Object> {
   const {
     propParsers,
   } = options;
@@ -193,7 +194,7 @@ export function enumObject(options: EnumObjectOptions): Parser<Record<string, An
     const specAsObject = ctx.spec as spec.Object;
     const asEnum = value as Enum;
     
-    const result: Record<string, AnyJson> = {};
+    const result: Object = {};
     const key = asEnum.type;
     result[key] = propParsers[key](asEnum.value, {
       currencies: ctx.currencies,
@@ -206,11 +207,11 @@ export function enumObject(options: EnumObjectOptions): Parser<Record<string, An
   };
 }
 
-export type ArrayOptions<T extends AnyJson> = {
+export type ArrayOptions<T extends Json> = {
   parseItem: Parser<T>;
 };
 
-export function array<T extends AnyJson = AnyJson>(options: ArrayOptions<T>): Parser<T[]> {
+export function array<T extends Json = Json>(options: ArrayOptions<T>): Parser<T[]> {
   const {
     parseItem,
   } = options;
@@ -234,7 +235,7 @@ export type TupleOptions = {
   itemParsers: Parser[];
 };
 
-export function tuple(options: TupleOptions): Parser<AnyJson[]> {
+export function tuple(options: TupleOptions): Parser<Json[]> {
   const {
     itemParsers,
   } = options;

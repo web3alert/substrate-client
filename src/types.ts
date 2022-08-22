@@ -4,6 +4,12 @@ import type {
   parser,
 } from './metadata';
 
+export type Json = string | number | boolean | null | undefined | Json[] | {
+  [key: string]: Json;
+};
+
+export type Object = Record<string, Json>;
+
 export type PartialRecord<K extends string | number | symbol, V> = Partial<Record<K, V>>;
 
 export type AddressFormat = 'substrate' | 'evm';
@@ -54,7 +60,10 @@ export type EventName = {
 export type EventArgument = {
   name: string;
   spec: spec.Spec;
-  parse: parser.Parser;
+  parse: {
+    raw: parser.Parser;
+    human: parser.Parser;
+  };
   debug: {
     typeDef: TypeDef;
     typeName: { raw: string, sanitized: string } | null;
@@ -69,9 +78,13 @@ export type EventSpec = {
 
 export type Event = {
   name: string;
-  params: Record<string, unknown>;
-  payload: {
+  params: {
+    raw: Object;
+    human: Object;
+  };
+  payload?: {
     block: number;
     index: number | null;
+    [key: string]: Json;
   };
 };
