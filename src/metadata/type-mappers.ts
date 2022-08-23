@@ -106,8 +106,8 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
     return {
       spec: spec.object({ props }),
       parse: {
-        raw: parser.object({ propParsers: parsersRaw }),
-        human: parser.object({ propParsers: parsersHuman }),
+        raw: parser.enumObject({ propParsers: parsersRaw }),
+        human: parser.enumObject({ propParsers: parsersHuman }),
       },
     };
   },
