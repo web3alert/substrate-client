@@ -107,7 +107,7 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
       spec: spec.object({ props }),
       parse: {
         raw: parser.object({ propParsers: parsersRaw }),
-        human: parser.object({ propParsers: parsersHuman }),
+        human: parser.humanObject({ propParsers: parsersHuman }),
       },
     };
   },
@@ -293,7 +293,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
       spec: spec.balance(),
       parse: {
         raw: parser.balance(),
-        human: parser.balance(),
+        human: parser.humanBalance(),
       },
     };
   }),
@@ -336,7 +336,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
       spec: spec.hash(),
       parse: {
         raw: parser.string(),
-        human: parser.string(),
+        human: parser.shortHash(),
       },
     };
   }),

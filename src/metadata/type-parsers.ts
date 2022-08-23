@@ -49,6 +49,14 @@ export function bigint(): Parser<number> {
   return value => Number((value as Int).toBigInt());
 }
 
+export function shortHash(): Parser<string> {
+  return value => {
+    let hash = value.toString() as string;
+    let short = hash.substring(0, 7) + '...' + hash.substring(hash.length - 5, 5)
+    return short
+  }
+}
+
 export type FixedPointOptions = {
   decimals: number;
 };
@@ -57,10 +65,10 @@ export function fixedPoint(options: FixedPointOptions): Parser<number> {
   const {
     decimals,
   } = options;
-  
+
   return value => {
     const raw = Number((value as Int).toBigInt());
-    
+
     return raw / Math.pow(10, decimals);
   }
 }
@@ -71,17 +79,17 @@ export type BalanceOptions = {
 
 export function balance(options?: BalanceOptions): Parser<number> {
   const parseRaw: Parser<number> = options?.parseRaw || raw() as Parser<number>;
-  
+
   return (value, ctx) => {
     const specAsBalance = ctx.spec as spec.Balance;
     const raw = parseRaw(value, ctx);
-    
+
     if (specAsBalance.currency) {
       let currency: CurrencyInfo | undefined = undefined;
-      
+
       if (isPlainCurrency(specAsBalance.currency)) {
         const symbol = specAsBalance.currency.plain;
-        
+
         currency = ctx.currencies.get(symbol);
       } else {
         const lookup = specAsBalance.currency.lookup;
@@ -89,26 +97,70 @@ export function balance(options?: BalanceOptions): Parser<number> {
           .join('.')
           .replace(new RegExp(lookup.match), lookup.replace)
           .split('.')
-        ;
-        
+          ;
+
         const currencyArgValueDecoded = _.get(ctx.rawArgs, lookupPath);
-        
+
         // 🌈​🦄​🦋​✨🥰
         if (typeof currencyArgValueDecoded == 'object' && currencyArgValueDecoded['token']) {
           const symbol = currencyArgValueDecoded['token'];
-          
+
           if (typeof symbol == 'string') {
             currency = ctx.currencies.get(symbol);
           }
         }
       }
-      
+
       if (currency) {
         return raw / Math.pow(10, currency.decimals);
       }
     }
-    
+
     return raw;
+  };
+}
+
+export function humanBalance(options?: BalanceOptions): Parser<string> {
+  const parseRaw: Parser<number> = options?.parseRaw || raw() as Parser<number>;
+
+  return (value, ctx) => {
+    const specAsBalance = ctx.spec as spec.Balance;
+    const raw = parseRaw(value, ctx);
+
+    if (specAsBalance.currency) {
+      let currency: CurrencyInfo | undefined = undefined;
+
+      if (isPlainCurrency(specAsBalance.currency)) {
+        const symbol = specAsBalance.currency.plain;
+
+        currency = ctx.currencies.get(symbol);
+      } else {
+        const lookup = specAsBalance.currency.lookup;
+        const lookupPath = ctx.path
+          .join('.')
+          .replace(new RegExp(lookup.match), lookup.replace)
+          .split('.')
+          ;
+
+        const currencyArgValueDecoded = _.get(ctx.rawArgs, lookupPath);
+
+        // 🌈​🦄​🦋​✨🥰
+        if (typeof currencyArgValueDecoded == 'object' && currencyArgValueDecoded['token']) {
+          const symbol = currencyArgValueDecoded['token'];
+
+          if (typeof symbol == 'string') {
+            currency = ctx.currencies.get(symbol);
+          }
+        }
+      }
+      if (currency) {
+        let result = raw / Math.pow(10, currency.decimals) + ' ' + currency.symbol;
+        console.log(result)
+        return result
+      }
+    }
+
+    return raw.toFixed();
   };
 }
 
@@ -126,11 +178,11 @@ export function map(options: MapOptions): Parser<Record<string | number, Json>> 
     keysParser,
     valuesParser,
   } = options;
-  
+
   return (value, ctx) => {
     const specAsMap = ctx.spec as spec.Map;
     const asMap = value as BTreeMap;
-    
+
     const result: Record<string | number, Json> = {};
     for (const [key, value] of asMap.entries()) {
       const keyDecoded = keysParser(key, {
@@ -139,7 +191,7 @@ export function map(options: MapOptions): Parser<Record<string | number, Json>> 
         spec: specAsMap.keys,
         rawArgs: ctx.rawArgs,
       });
-      
+
       result[keyDecoded] = valuesParser(value, {
         currencies: ctx.currencies,
         path: [...ctx.path, '' + keyDecoded],
@@ -147,7 +199,7 @@ export function map(options: MapOptions): Parser<Record<string | number, Json>> 
         rawArgs: ctx.rawArgs,
       });
     }
-    
+
     return result;
   };
 }
@@ -160,13 +212,13 @@ export function object(options: ObjectOptions): Parser<Record<string, Json>> {
   const {
     propParsers,
   } = options;
-  
+
   const keys = Object.keys(propParsers);
-  
+
   return (value, ctx) => {
     const specAsObject = ctx.spec as spec.Object;
     const asStruct = value as Struct;
-    
+
     const result: Object = {};
     for (const key of keys) {
       result[key] = propParsers[key](asStruct.get(key)!, {
@@ -176,8 +228,33 @@ export function object(options: ObjectOptions): Parser<Record<string, Json>> {
         rawArgs: ctx.rawArgs,
       });
     }
-    
+
     return result;
+  };
+}
+
+export function humanObject(options: ObjectOptions): Parser<string> {
+  const {
+    propParsers,
+  } = options;
+
+  const keys = Object.keys(propParsers);
+
+  return (value, ctx) => {
+    const specAsObject = ctx.spec as spec.Object;
+    const asStruct = value as Struct;
+
+    const result: Object = {};
+    for (const key of keys) {
+      result[key] = propParsers[key](asStruct.get(key)!, {
+        currencies: ctx.currencies,
+        path: [...ctx.path, key],
+        spec: specAsObject.props[key],
+        rawArgs: ctx.rawArgs,
+      });
+    }
+    console.log(result)
+    return JSON.stringify(result)
   };
 }
 
@@ -189,11 +266,11 @@ export function enumObject(options: EnumObjectOptions): Parser<Object> {
   const {
     propParsers,
   } = options;
-  
+
   return (value, ctx) => {
     const specAsObject = ctx.spec as spec.Object;
     const asEnum = value as Enum;
-    
+
     const result: Object = {};
     const key = asEnum.type;
     result[key] = propParsers[key](asEnum.value, {
@@ -202,7 +279,7 @@ export function enumObject(options: EnumObjectOptions): Parser<Object> {
       spec: specAsObject.props[key],
       rawArgs: ctx.rawArgs,
     });
-    
+
     return result;
   };
 }
@@ -215,11 +292,11 @@ export function array<T extends Json = Json>(options: ArrayOptions<T>): Parser<T
   const {
     parseItem,
   } = options;
-  
+
   return (value, ctx) => {
     const specAsArray = ctx.spec as spec.Array;
     const asArray = value as Vec<Codec>;
-    
+
     return asArray.map((item, index) => {
       return parseItem(item, {
         currencies: ctx.currencies,
@@ -239,14 +316,14 @@ export function tuple(options: TupleOptions): Parser<Json[]> {
   const {
     itemParsers,
   } = options;
-  
+
   return (value, ctx) => {
     const specAsTuple = ctx.spec as spec.Tuple;
     const asTuple = value as Tuple;
-    
+
     return asTuple.map((item, index) => {
       const parseItem = itemParsers[index];
-      
+
       return parseItem(item, {
         currencies: ctx.currencies,
         path: [...ctx.path, '' + index],
