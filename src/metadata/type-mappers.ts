@@ -48,7 +48,7 @@ const unknown: Handler = {
   spec: spec.unknown(),
   parse: {
     raw: parser.raw(),
-    human: parser.raw(),
+    human: parser.human(),
   },
 };
 
@@ -235,7 +235,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'Vote','DispatchResult','Call','Proposal','Data'
+    'DispatchResult','Call','Proposal','Data'
   ], (ctx, source, path) => {
     return {
       spec: spec.skip(),
