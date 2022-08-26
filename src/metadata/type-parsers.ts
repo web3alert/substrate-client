@@ -279,31 +279,6 @@ export function object(options: ObjectOptions): Parser<Record<string, Json>> {
   };
 }
 
-export function humanObject(options: ObjectOptions): Parser<string> {
-  const {
-    propParsers,
-  } = options;
-
-  const keys = Object.keys(propParsers);
-
-  return (value, ctx) => {
-    const specAsObject = ctx.spec as spec.Object;
-    const asStruct = value as Struct;
-
-    const result: Object = {};
-    for (const key of keys) {
-      result[key] = propParsers[key](asStruct.get(key)!, {
-        currencies: ctx.currencies,
-        path: [...ctx.path, key],
-        spec: specAsObject.props[key],
-        rawArgs: ctx.rawArgs,
-      });
-    }
-    console.log(result)
-    return JSON.stringify(result)
-  };
-}
-
 export type EnumObjectOptions = {
   propParsers: Record<string, Parser>;
 };

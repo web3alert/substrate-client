@@ -8,7 +8,6 @@ import type {
 import type { Multiset } from './multiset';
 import * as spec from './type-specs';
 import * as parser from './type-parsers';
-import { SourceMap } from 'module';
 
 export type Context = {
   about: About;
@@ -224,17 +223,6 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
       },
     };
   }),
-  /*bind([
-    'Data',
-  ], (ctx, source, path) => {
-    return {
-      spec: spec.data(),
-      parse: {
-        raw: parser.bool(),
-        human: parser.bool(),
-      },
-    };
-  }),*/
   bind([
     'bool',
   ], (ctx, source, path) => {
