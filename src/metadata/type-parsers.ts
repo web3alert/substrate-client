@@ -49,11 +49,60 @@ export function bigint(): Parser<number> {
   return value => Number((value as Int).toBigInt());
 }
 
-export function shortHash(): Parser<string> {
+export function shortHash(): Parser<Json> {
   return value => {
     let hash = value.toString() as string;
-    let short = hash.substring(0, 7) + '...' + hash.substring(hash.length - 5, 5)
+    let short = hash.substring(0, 7) + '...' + hash.substring(hash.length - 5, hash.length)
     return short
+  }
+}
+
+export function bytes(): Parser<Json> {
+  return value => {
+    const raw = value.toString() as string
+    let hex: string;
+    let decoded: string = ""
+    let char: string = ""
+
+    if (raw.startsWith("0x")) {
+      hex = raw.slice(2)
+    }
+    else hex = raw
+
+    for (var i = 0; i < hex.length; i += 2) {
+      char += "%" + hex.substring(i, i + 2)
+      try {
+        decoded += decodeURIComponent(char)
+        char = ""
+      } catch {
+        continue
+      }
+    }
+
+    if (decoded === "") {
+      return value.toString().length > 40
+        ? raw.substring(0, 7) + '...' + raw.substring(raw.length - 5, raw.length)
+        : raw
+    } else return decoded
+  }
+}
+
+export function moment(): Parser<Json> {
+  return value => {
+    var date = new Date(Number(value))
+    let formatted_date =
+      date.getFullYear() +
+      "-" +
+      (date.getMonth() + 1) +
+      "-" +
+      date.getDate() +
+      " " +
+      date.getHours() +
+      ":" +
+      date.getMinutes() +
+      ":" +
+      date.getSeconds()
+    return formatted_date + " (UTC+0)"
   }
 }
 
@@ -120,7 +169,7 @@ export function balance(options?: BalanceOptions): Parser<number> {
   };
 }
 
-export function humanBalance(options?: BalanceOptions): Parser<string> {
+export function humanBalance(options?: BalanceOptions): Parser<Json> {
   const parseRaw: Parser<number> = options?.parseRaw || raw() as Parser<number>;
 
   return (value, ctx) => {
@@ -154,13 +203,11 @@ export function humanBalance(options?: BalanceOptions): Parser<string> {
         }
       }
       if (currency) {
-        let result = raw / Math.pow(10, currency.decimals) + ' ' + currency.symbol;
-        console.log(result)
+        let result = (raw / Math.pow(10, currency.decimals)).toFixed(4) + ' ' + currency.symbol;
         return result
       }
     }
-
-    return raw.toFixed();
+    return raw;
   };
 }
 
@@ -218,7 +265,6 @@ export function object(options: ObjectOptions): Parser<Record<string, Json>> {
   return (value, ctx) => {
     const specAsObject = ctx.spec as spec.Object;
     const asStruct = value as Struct;
-
     const result: Object = {};
     for (const key of keys) {
       result[key] = propParsers[key](asStruct.get(key)!, {
@@ -284,6 +330,32 @@ export function enumObject(options: EnumObjectOptions): Parser<Object> {
   };
 }
 
+export function humanEnumObject(options: EnumObjectOptions): Parser<Json> {
+  const {
+    propParsers,
+  } = options;
+
+  return (value, ctx) => {
+    const specAsObject = ctx.spec as spec.Object;
+    const asEnum = value as Enum;
+
+    const result: Object = {};
+    const key = asEnum.type;
+    result[key] = propParsers[key](asEnum.value, {
+      currencies: ctx.currencies,
+      path: [...ctx.path, key],
+      spec: specAsObject.props[key],
+      rawArgs: ctx.rawArgs,
+    });
+    if (result[key] === null) {
+      return key
+    }
+    else {
+      return result
+    }
+  };
+}
+
 export type ArrayOptions<T extends Json> = {
   parseItem: Parser<T>;
 };
@@ -305,6 +377,36 @@ export function array<T extends Json = Json>(options: ArrayOptions<T>): Parser<T
         rawArgs: ctx.rawArgs,
       });
     });
+  };
+}
+
+export function humanArray<T extends Json = Json>(options: ArrayOptions<T>): Parser<Json> {
+  const {
+    parseItem,
+  } = options;
+
+  return (value, ctx) => {
+    const specAsArray = ctx.spec as spec.Array;
+    const asArray = value as Vec<Codec>;
+
+    const vec = asArray.map((item, index) => {
+      return parseItem(item, {
+        currencies: ctx.currencies,
+        path: [...ctx.path, '' + index],
+        spec: specAsArray.items,
+        rawArgs: ctx.rawArgs,
+      });
+    });
+
+    if (vec.length > 10) {
+      let result: Json[] = []
+      vec.forEach((item, index) => {
+        if (index < 10) result.push(item)
+        else if (index == 10) result.push(`too many elements. length = ${vec.length}`)
+      })
+      return result
+    }
+    else return vec
   };
 }
 
