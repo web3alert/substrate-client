@@ -107,7 +107,7 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
       spec: spec.object({ props }),
       parse: {
         raw: parser.enumObject({ propParsers: parsersRaw }),
-        human: parser.enumObject({ propParsers: parsersHuman }),
+        human: parser.humanEnumObject({ propParsers: parsersHuman }),
       },
     };
   },
@@ -193,7 +193,7 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
       spec: spec.array({ items: itemsHandler.spec }),
       parse: {
         raw: parser.array({ parseItem: itemsHandler.parse.raw }),
-        human: parser.array({ parseItem: itemsHandler.parse.human }),
+        human: parser.humanArray({ parseItem: itemsHandler.parse.human }),
       },
     };
   },
@@ -235,7 +235,29 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'u8', 'u16', 'u32',
+    'Vote','DispatchResult','Call','Proposal','Data'
+  ], (ctx, source, path) => {
+    return {
+      spec: spec.skip(),
+      parse: {
+        raw: parser.raw(),
+        human: parser.human(),
+      },
+    };
+  }),
+  bind([
+    'Moment',
+  ], (ctx, source, path) => {
+    return {
+      spec: spec.skip(),
+      parse: {
+        raw: parser.raw(),
+        human: parser.moment(),
+      },
+    };
+  }),
+  bind([
+    'u8', 'u16', 'u32'
   ], (ctx, source, path) => {
     return {
       spec: spec.int(),
@@ -293,7 +315,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
       spec: spec.balance(),
       parse: {
         raw: parser.balance(),
-        human: parser.balance(),
+        human: parser.humanBalance(),
       },
     };
   }),
@@ -319,24 +341,24 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'Bytes',
-  ], (ctx, source, path) => {
-    return {
-      spec: spec.string(),
-      parse: {
-        raw: parser.human(),
-        human: parser.human(),
-      },
-    };
-  }),
-  bind([
-    'H256',
+    'Bytes','Kind'
   ], (ctx, source, path) => {
     return {
       spec: spec.hash(),
       parse: {
         raw: parser.string(),
-        human: parser.string(),
+        human: parser.human(),
+      },
+    };
+  }),
+  bind([
+    'H256','AuthorityId','CallHash'
+  ], (ctx, source, path) => {
+    return {
+      spec: spec.hash(),
+      parse: {
+        raw: parser.string(),
+        human: parser.shortHash(),
       },
     };
   }),
@@ -377,7 +399,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
       spec: spec.address({ addressFormat: 'evm' }),
       parse: {
         raw: parser.string(),
-        human: parser.string(),
+        human: parser.shortHash(),
       },
     };
   }),
