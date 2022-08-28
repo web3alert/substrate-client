@@ -203,7 +203,14 @@ export function humanBalance(options?: BalanceOptions): Parser<Json> {
         }
       }
       if (currency) {
-        let result = (raw / Math.pow(10, currency.decimals)).toFixed(4) + ' ' + currency.symbol;
+        const rawBalance = (raw / Math.pow(10, currency.decimals))
+        let formatBalance = ""
+        const splited = rawBalance.toString().split('.')
+        if (splited.length == 2 && splited[1].length > 4) {
+          formatBalance = rawBalance.toFixed(4)
+        }
+        else formatBalance = rawBalance.toString()
+        let result = formatBalance + ' ' + currency.symbol;
         return result
       }
     }
