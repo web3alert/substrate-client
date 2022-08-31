@@ -42,6 +42,7 @@ export type Mapper = (
 ) => Handler;
 
 const RE_VEC = /^Vec<(.+)>$/;
+const RE_OPTION = /^Option<(.+)>$/;
 const RE_TUPLE = /^\(((?:[a-zA-Z0-9-_]+,?)*)\)$/;
 
 const unknown: Handler = {
@@ -197,6 +198,24 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
       },
     };
   },
+  [TypeDefInfo.Option]: (ctx, source, path) => {
+    const sub = { ...source.sub! as TypeDef };
+    
+    if (source.typeName) {
+      const match = source.typeName.match(RE_OPTION);      
+      if (match) {
+        sub.typeName = match[1];
+      }
+    }
+    const subHandler = ctx.wrappers.get(ctx, sub, path);
+    return {
+      spec: subHandler.spec,
+      parse: {
+        raw: parser.option({ parseItem: subHandler.parse.raw }),
+        human: parser.option({ parseItem: subHandler.parse.human }),
+      }
+    }
+  },
 };
 
 type PrimitiveMapperBinding = {
@@ -231,6 +250,44 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
       parse: {
         raw: parser.bool(),
         human: parser.bool(),
+      },
+    };
+  }),  
+  bind([
+    'MultiLocation',
+  ], (ctx, source, path) => {
+    let real_source = source
+    if(source.type.includes('Lookup') && source.lookupIndex){
+      real_source = ctx.lookup.getTypeDef(source.lookupIndex)
+    }
+    const subs = (real_source.sub! as TypeDef[]).map(item => ({ ...item }));
+    const props: Record<string, spec.Spec> = {};
+    const parsersRaw: Record<string, parser.Parser> = {};
+    const parsersHuman: Record<string, parser.Parser> = {};
+    for (const sub of subs) {
+      const name = sub.name!;
+      const handler = ctx.wrappers.get(ctx, sub, `${path}.${name}`);
+      
+      props[name] = handler.spec;
+      parsersRaw[name] = handler.parse.raw;
+      parsersHuman[name] = handler.parse.human;
+    }
+    return {
+      spec: spec.object({ props }),
+      parse: {
+        raw: parser.object({ propParsers: parsersRaw }),
+        human: parser.object({ propParsers: parsersHuman }),
+      },
+    };
+  }),
+  bind([
+    'Junctions',
+  ], (ctx, source, path) => {
+    return {
+      spec: spec.skip(),
+      parse: {
+        raw: parser.raw(),
+        human: parser.junctions(),
       },
     };
   }),
@@ -352,7 +409,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'H256','AuthorityId','CallHash'
+    'H256','AuthorityId','CallHash','MessageId'
   ], (ctx, source, path) => {
     return {
       spec: spec.hash(),

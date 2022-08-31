@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import _, { range } from 'lodash';
 import type {
   Int,
   BTreeMap,
@@ -6,6 +6,7 @@ import type {
   Enum,
   Vec,
   Tuple,
+  Option
 } from '@polkadot/types';
 import type { Codec } from '@polkadot/types/types';
 import type {
@@ -15,6 +16,7 @@ import type {
 } from '../types';
 import type { CurrencyRegistry } from './currency-registry';
 import type * as spec from './type-specs';
+import type { Junction } from '@polkadot/types/interfaces';
 
 export type ParserContext = {
   currencies: CurrencyRegistry;
@@ -122,6 +124,62 @@ export function fixedPoint(options: FixedPointOptions): Parser<number> {
   }
 }
 
+export function junctions(): Parser<Json> {
+  return value => {
+    const raw = value as any
+    const index = checkJunctionIndex(raw)
+    let result: Json = {}
+    if(index == 1){
+      result = parseJunction(raw[`asX${index}`])
+    }
+    else {
+      const tupleOfJunctions = raw[`asX${index}`]
+      result = []
+      for(let i = 2; i <= index; i++){
+        result.push(parseJunction(raw[`asX${index}`][i]))
+      }
+    }
+    return result
+  }
+}
+
+function checkJunctionIndex(junctions: any):number {
+  return range(1,8).find(index => junctions[`isX${index}`]) ?? 0
+}
+
+function parseJunction (junction: Junction): Json{
+  if(junction.isAccountId32){
+    let hash = junction.asAccountId32.id.toString() as string;
+    let short = hash.substring(0, 7) + '...' + hash.substring(hash.length - 5, hash.length)
+    const result = {
+      id: short,
+      network: junction.asAccountId32.network.toHuman()
+    }
+    return result
+  } else if (junction.isAccountIndex64){
+    return junction.asAccountIndex64.toHuman()
+  } else if (junction.isAccountKey20) {
+    let hash = junction.asAccountKey20.key.toString() as string;
+    let short = hash.substring(0, 7) + '...' + hash.substring(hash.length - 5, hash.length)
+    const result = {
+      id: short,
+      network: junction.asAccountId32.network.toHuman()
+    }
+    return result
+  } else if (junction.isGeneralIndex) {
+    return junction.asGeneralIndex.toHuman()
+  } else if (junction.isGeneralKey) {
+    return junction.asGeneralKey.toHuman()
+  } else if (junction.isPalletInstance) {
+    return junction.asPalletInstance.toHuman()
+  } else if (junction.isParachain) {
+    return junction.asParachain.toHuman()
+  } else if (junction.isPlurality) {
+    return junction.asPlurality.toHuman()
+  }
+  return junction.toHuman()
+}
+
 export type BalanceOptions = {
   parseRaw?: Parser<number>;
 };
@@ -131,7 +189,7 @@ export function balance(options?: BalanceOptions): Parser<number> {
 
   return (value, ctx) => {
     const specAsBalance = ctx.spec as spec.Balance;
-    const raw = parseRaw(value, ctx);
+    const raw = Number(parseRaw(value, ctx));
 
     if (specAsBalance.currency) {
       let currency: CurrencyInfo | undefined = undefined;
@@ -174,7 +232,7 @@ export function humanBalance(options?: BalanceOptions): Parser<Json> {
 
   return (value, ctx) => {
     const specAsBalance = ctx.spec as spec.Balance;
-    const raw = parseRaw(value, ctx);
+    const raw = Number(parseRaw(value, ctx));
 
     if (specAsBalance.currency) {
       let currency: CurrencyInfo | undefined = undefined;
@@ -389,6 +447,17 @@ export function humanArray<T extends Json = Json>(options: ArrayOptions<T>): Par
       return result
     }
     else return vec
+  };
+}
+
+export function option<T extends Json = Json>(options: ArrayOptions<T>): Parser<T> {
+  const {
+    parseItem,
+  } = options;
+
+  return (value, ctx) => {
+    const raw = value as Option<Codec>
+    return parseItem(raw.value, ctx)
   };
 }
 
