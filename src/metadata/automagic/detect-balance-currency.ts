@@ -1,3 +1,6 @@
+import type { SpanIndex } from '@polkadot/types/interfaces';
+import { isObject } from 'lodash';
+import type { RecordableHistogram } from 'perf_hooks';
 import type { EventSpec } from '../../types';
 import type * as spec from '../type-specs';
 import type { AutomagicContext } from './types';
@@ -10,6 +13,7 @@ function isType(type: string): IsPredicate {
 
 const isBalance = isType('balance');
 const isCurrency = isType('currency');
+const isObjectSpec = isType('object');
 
 function isArrayOfType(type: string): IsPredicate {
   return spec => spec.type == 'array' && spec.items.type == type;
@@ -28,11 +32,12 @@ function isTupleOfTwo(type: string): IsPredicate {
 
 const isTupleOfTwoCurrencies = isTupleOfTwo('currency');
 
-function countArgs(event: EventSpec, is: IsPredicate): number {
+function countArgs(specs: spec.NamedSpec[], is: IsPredicate): number {
   let count = 0;
   
-  for (const arg of event.args) {
-    if (is(arg.spec)) {
+  for (const arg of specs) {
+    const spec = arg.spec
+    if (is(spec)) {
       count++;
     }
   }
@@ -40,9 +45,9 @@ function countArgs(event: EventSpec, is: IsPredicate): number {
   return count;
 }
 
-function asParallelArrays(ctx: AutomagicContext, event: EventSpec): void {
-  const arrayOfBalancesArg = event.args.find(item => isArrayOfBalances(item.spec))!;
-  const arrayOfCurrenciesArg = event.args.find(item => isArrayOfCurrencies(item.spec))!;
+function asParallelArrays(specs: spec.NamedSpec[]): void {
+  const arrayOfBalancesArg = specs.find(item => isArrayOfBalances(item.spec))!;
+  const arrayOfCurrenciesArg = specs.find(item => isArrayOfCurrencies(item.spec))!;
   
   const arrayOfBalancesArgSpec = arrayOfBalancesArg.spec as spec.Array;
   const balanceSpec = arrayOfBalancesArgSpec.items as spec.Balance;
@@ -55,11 +60,10 @@ function asParallelArrays(ctx: AutomagicContext, event: EventSpec): void {
   };
 }
 
-function asOneToOne(ctx: AutomagicContext, event: EventSpec): void {
-  const balanceArg = event.args.find(item => isBalance(item.spec))!;
+function asOneToOne(specs: spec.NamedSpec[]): void {
+  const balanceArg = specs.find(item => isBalance(item.spec))!;
   const balanceArgSpec = balanceArg.spec as spec.Balance;
-  const currencyArg = event.args.find(item => isCurrency(item.spec))!;
-  
+  const currencyArg = specs.find(item => isCurrency(item.spec))!;
   balanceArgSpec.currency = {
     lookup: {
       match: '^.*$',
@@ -68,9 +72,25 @@ function asOneToOne(ctx: AutomagicContext, event: EventSpec): void {
   };
 }
 
-function asCommonSetWithTuplesOfTwoCurrencies(ctx: AutomagicContext, event: EventSpec): void {
-  const balanceArgs = event.args.filter(item => isBalance(item.spec));
-  const tupleOfTwoCurrenciesArgs = event.args.filter(item => isTupleOfTwoCurrencies(item.spec));
+function asManyToOne(specs: spec.NamedSpec[]): void {
+  const balanceArgs = specs.filter(item => isBalance(item.spec));
+  const currencyArg = specs.find(item => isCurrency(item.spec))!;
+  const count = balanceArgs.length;
+  for (let i = 0; i < count; i++) {
+    const balanceArg = balanceArgs[i];
+    const balanceArgSpec = balanceArg.spec as spec.Balance;
+    balanceArgSpec.currency = {
+      lookup: {
+        match: '^.*$',
+        replace: currencyArg.name,
+      },
+    };
+  }
+}
+
+function asCommonSetWithTuplesOfTwoCurrencies(specs: spec.NamedSpec[]): void {
+  const balanceArgs = specs.filter(item => isBalance(item.spec));
+  const tupleOfTwoCurrenciesArgs = specs.filter(item => isTupleOfTwoCurrencies(item.spec));
   const count = balanceArgs.length;
   
   for (let i = 0; i < count; i++) {
@@ -91,8 +111,8 @@ function asCommonSetWithTuplesOfTwoCurrencies(ctx: AutomagicContext, event: Even
   }
 }
 
-function asDefault(ctx: AutomagicContext, event: EventSpec): void {
-  for (const arg of event.args) {
+function asDefault(ctx: AutomagicContext, specs: spec.NamedSpec[]): void {
+  for (const arg of specs) {
     if (isBalance(arg.spec)) {
       const asBalance = arg.spec as spec.Balance;
       
@@ -101,20 +121,36 @@ function asDefault(ctx: AutomagicContext, event: EventSpec): void {
   }
 }
 
-export function detectBalanceCurrency(ctx: AutomagicContext, event: EventSpec): void {
-  const balanceArgsCount = countArgs(event, isBalance);
-  const currencyArgsCount = countArgs(event, isCurrency);
-  const arrayOfBalancesArgsCount = countArgs(event, isArrayOfBalances);
-  const arrayOfCurrenciesArgsCount = countArgs(event, isArrayOfCurrencies);
-  const tupleOfTwoCurrenciesArgsCount = countArgs(event, isTupleOfTwoCurrencies);
+export function detectBalanceCurrency(ctx: AutomagicContext, specs: spec.NamedSpec[]): void {
+  const balanceArgsCount = countArgs(specs, isBalance);
+  const currencyArgsCount = countArgs(specs, isCurrency);
+  const arrayOfBalancesArgsCount = countArgs(specs, isArrayOfBalances);
+  const arrayOfCurrenciesArgsCount = countArgs(specs, isArrayOfCurrencies);
+  const tupleOfTwoCurrenciesArgsCount = countArgs(specs, isTupleOfTwoCurrencies);
   
   if (arrayOfBalancesArgsCount == 1 && arrayOfCurrenciesArgsCount == 1) {
-    asParallelArrays(ctx, event);
+    asParallelArrays(specs);
   } else if (balanceArgsCount == 1 && currencyArgsCount == 1) {
-    asOneToOne(ctx, event);
+    asOneToOne(specs);
   } else if (balanceArgsCount == tupleOfTwoCurrenciesArgsCount) {
-    asCommonSetWithTuplesOfTwoCurrencies(ctx, event);
-  } else if (balanceArgsCount > 0 && currencyArgsCount == 0) {
-    asDefault(ctx, event);
+    asCommonSetWithTuplesOfTwoCurrencies(specs);
+  } else if (balanceArgsCount > 1 && currencyArgsCount == 1) {
+    asManyToOne(specs);
+  }else if (balanceArgsCount > 0 && currencyArgsCount == 0) {
+    asDefault(ctx, specs);
   }
+
+  
+  specs.filter(spec => isObjectSpec(spec.spec)).forEach(spec => {
+    const objectSpec = spec.spec as spec.Object
+    const objectProps: spec.NamedSpec[] = []
+    for(let i in objectSpec.props){
+      const prop:spec.NamedSpec = {
+        name:i,
+        spec: objectSpec.props[i]
+      }
+      objectProps.push(prop)
+    }
+    detectBalanceCurrency(ctx, objectProps)
+  })
 }

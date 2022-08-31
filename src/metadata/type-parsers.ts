@@ -17,6 +17,7 @@ import type {
 import type { CurrencyRegistry } from './currency-registry';
 import type * as spec from './type-specs';
 import type { Junction } from '@polkadot/types/interfaces';
+import { rawListeners } from 'process';
 
 type Lookup = { match: string; replace: string };
 
@@ -38,20 +39,20 @@ function getLookupSymbol(ctx: ParserContext, lookup?: Lookup): string | undefine
   if (!lookup) {
     return undefined;
   }
-  
+
   const lookupPath = ctx.path
     .join('.')
     .replace(new RegExp(lookup.match), lookup.replace)
     .split('.')
-  ;
-  
+    ;
+
   const currencyArgValue = _.get(ctx.rawArgs, lookupPath);
   const currencyArgValueParsed = parseCurrency(currencyArgValue);
-  
+
   if (typeof currencyArgValueParsed == 'string') {
     return currencyArgValueParsed;
   }
-  
+
   return undefined;
 }
 
@@ -60,20 +61,20 @@ function getCurrencyInfo(ctx: ParserContext, spec: spec.Balance): CurrencyInfo |
   if (!spec.currency) {
     return undefined;
   }
-  
+
   if (isPlainCurrency(spec.currency)) {
     const symbol = spec.currency.plain;
-    
+
     return ctx.currencies.get(symbol);
   } else {
     const symbol = getLookupSymbol(ctx, spec.currency.lookup);
     const symbol2 = getLookupSymbol(ctx, spec.currency.lookup2);
-    
+
     if ((symbol && symbol2 && symbol2 == symbol) || (symbol && !symbol2)) {
       return ctx.currencies.get(symbol);
     }
   }
-  
+
   return undefined;
 }
 
@@ -86,16 +87,16 @@ export function parseCurrency(raw: Json): Json {
       'vsToken',
       'vsBond.0',
     ];
-    
+
     for (const tryPath of tryPaths) {
       const value = _.get(raw, tryPath);
-      
+
       if (typeof value == 'string') {
         return value;
       }
     }
   }
-  
+
   return raw;
 }
 
@@ -197,13 +198,13 @@ export function junctions(): Parser<Json> {
     const raw = value as any
     const index = checkJunctionIndex(raw)
     let result: Json = {}
-    if(index == 1){
+    if (index == 1) {
       result = parseJunction(raw[`asX${index}`])
     }
     else {
       const tupleOfJunctions = raw[`asX${index}`]
       result = []
-      for(let i = 2; i <= index; i++){
+      for (let i = 0; i < index; i++) {
         result.push(parseJunction(raw[`asX${index}`][i]))
       }
     }
@@ -211,20 +212,20 @@ export function junctions(): Parser<Json> {
   }
 }
 
-function checkJunctionIndex(junctions: any):number {
-  return range(1,8).find(index => junctions[`isX${index}`]) ?? 0
+function checkJunctionIndex(junctions: any): number {
+  return range(1, 8).find(index => junctions[`isX${index}`]) ?? 0
 }
 
-function parseJunction (junction: Junction): Json{
-  if(junction.isAccountId32){
+function parseJunction(junction: Junction): Json {
+  if (junction.isAccountId32) {
     let hash = junction.asAccountId32.id.toString() as string;
     let short = hash.substring(0, 7) + '...' + hash.substring(hash.length - 5, hash.length)
     const result = {
-      id: short,
-      network: junction.asAccountId32.network.toHuman()
+      network: junction.asAccountId32.network.toHuman(),
+      id: short
     }
     return result
-  } else if (junction.isAccountIndex64){
+  } else if (junction.isAccountIndex64) {
     return junction.asAccountIndex64.toHuman()
   } else if (junction.isAccountKey20) {
     let hash = junction.asAccountKey20.key.toString() as string;
@@ -241,7 +242,9 @@ function parseJunction (junction: Junction): Json{
   } else if (junction.isPalletInstance) {
     return junction.asPalletInstance.toHuman()
   } else if (junction.isParachain) {
-    return junction.asParachain.toHuman()
+    return {
+      parachain: junction.asParachain.toHuman()
+    }
   } else if (junction.isPlurality) {
     return junction.asPlurality.toHuman()
   }
@@ -254,44 +257,55 @@ export type BalanceOptions = {
 
 export function balance(options?: BalanceOptions): Parser<number> {
   const parseRaw: Parser<number> = options?.parseRaw || raw() as Parser<number>;
-  
+
   return (value, ctx) => {
     const specAsBalance = ctx.spec as spec.Balance;
     const raw = Number(parseRaw(value, ctx));
-    
+
     const currencyInfo = getCurrencyInfo(ctx, specAsBalance);
     if (currencyInfo) {
       return raw / Math.pow(10, currencyInfo.decimals);
     }
-    
+
     return raw;
   };
 }
 
 export function humanBalance(options?: BalanceOptions): Parser<Json> {
   const parseRaw: Parser<number> = options?.parseRaw || raw() as Parser<number>;
-  
+
   return (value, ctx) => {
     const specAsBalance = ctx.spec as spec.Balance;
     const raw = Number(parseRaw(value, ctx));
-    
+
     const currencyInfo = getCurrencyInfo(ctx, specAsBalance);
     if (currencyInfo) {
       const rawBalance = (raw / Math.pow(10, currencyInfo.decimals));
-      
+
       let formatBalance = "";
-      const splited = rawBalance.toString().split('.');
+      let stringBalance = rawBalance.toString()
+      if(stringBalance.includes('e')){
+        stringBalance = rawBalance.toFixed(currencyInfo.decimals)
+      }
+      const splited = stringBalance.split('.');
       if (splited.length == 2 && splited[1].length > 4) {
-        formatBalance = rawBalance.toFixed(4);
+        const firstNotZero = [...splited[1]].findIndex(char => char != '0')
+        if (firstNotZero < 4) {
+          formatBalance = rawBalance.toFixed(4);
+        }
+        else if (firstNotZero > currencyInfo.decimals - 4) {
+          formatBalance = rawBalance.toFixed(currencyInfo.decimals)
+        }
+        else formatBalance = rawBalance.toFixed(firstNotZero + 1)
       } else {
         formatBalance = rawBalance.toString();
       }
-      
+
       let result = formatBalance + ' ' + currencyInfo.symbol;
-      
+
       return result;
     }
-    
+
     return raw;
   };
 }

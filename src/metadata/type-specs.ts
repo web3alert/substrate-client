@@ -117,6 +117,11 @@ export type Spec =
   | Wrapper
 ;
 
+export type NamedSpec = {
+  name: string,
+  spec: Spec
+}
+
 export function unknown(): Unknown {
   return { type: 'unknown' };
 }

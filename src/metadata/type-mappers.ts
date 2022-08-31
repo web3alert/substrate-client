@@ -366,7 +366,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'Balance', 'BalanceOf',
+    'Balance', 'BalanceOf', 'PalletBalanceOf', 'B'
   ], (ctx, source, path) => {
     return {
       spec: spec.balance(),
@@ -377,7 +377,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'CurrencyId',
+    'CurrencyId','CurrencyIdOf'
   ], (ctx, source, path) => {
     return {
       spec: spec.currency(),
