@@ -57,9 +57,7 @@ export type EventName = {
   full: string;
 };
 
-export type EventArgument = {
-  name: string;
-  spec: spec.Spec;
+export type EventArgument = spec.NamedSpec & {
   parse: {
     raw: parser.Parser;
     human: parser.Parser;

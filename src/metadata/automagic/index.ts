@@ -5,5 +5,5 @@ import { detectBalanceCurrency } from './detect-balance-currency';
 export * from './types';
 
 export function applyAutomagic(ctx: AutomagicContext, event: EventSpec): void {
-  detectBalanceCurrency(ctx, event);
+  detectBalanceCurrency(ctx, event.args);
 }
