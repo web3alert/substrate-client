@@ -17,7 +17,6 @@ import type {
 import type { CurrencyRegistry } from './currency-registry';
 import type * as spec from './type-specs';
 import type { Junction } from '@polkadot/types/interfaces';
-import { rawListeners } from 'process';
 
 type Lookup = { match: string; replace: string };
 
@@ -284,7 +283,7 @@ export function humanBalance(options?: BalanceOptions): Parser<Json> {
 
       let formatBalance = "";
       let stringBalance = rawBalance.toString()
-      if(stringBalance.includes('e')){
+      if (stringBalance.includes('e')) {
         stringBalance = rawBalance.toFixed(currencyInfo.decimals)
       }
       const splited = stringBalance.split('.');
