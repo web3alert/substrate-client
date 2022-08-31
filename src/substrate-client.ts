@@ -26,9 +26,12 @@ export type BlockPointer = {
   runtimeVersion: number;
 };
 
+export type SubstrateClientConfig = {};
+
 export type SubstrateClientOptions = {
   wsUrl: string;
   customClientTypes?: RegistryTypes;
+  config?: SubstrateClientConfig;
   defaultAddressFormat?: AddressFormat;
   filter?: {
     patterns: string[];
@@ -38,6 +41,7 @@ export type SubstrateClientOptions = {
 export class SubstrateClient {
   public wsUrl: string;
   public customClientTypes?: RegistryTypes;
+  public config?: SubstrateClientConfig;
   public defaultAddressFormat: AddressFormat;
   public api!: ApiPromise;
   public filter: Filter;
@@ -47,12 +51,14 @@ export class SubstrateClient {
     const {
       wsUrl,
       customClientTypes,
+      config,
       defaultAddressFormat,
       filter,
     } = options;
     
     this.wsUrl = wsUrl;
     this.customClientTypes = customClientTypes;
+    this.config = config;
     this.defaultAddressFormat = defaultAddressFormat ?? 'substrate';
     this.filter = new Filter({
       patterns: filter?.patterns ?? [],

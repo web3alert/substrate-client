@@ -379,21 +379,11 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   bind([
     'CurrencyId',
   ], (ctx, source, path) => {
-    const parseCurrency: parser.Parser = (value, ctx) => {
-      const raw = value.toJSON() as any;
-      
-      if (typeof raw == 'object' && 'token' in raw) {
-        return raw['token'];
-      } else {
-        return raw;
-      }
-    };
-    
     return {
       spec: spec.currency(),
       parse: {
-        raw: parseCurrency,
-        human: parseCurrency,
+        raw: value => parser.parseCurrency(value.toJSON()),
+        human: value => parser.parseCurrency(value.toJSON()),
       },
     };
   }),

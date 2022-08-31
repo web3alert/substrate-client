@@ -18,6 +18,16 @@ function isArrayOfType(type: string): IsPredicate {
 const isArrayOfBalances = isArrayOfType('balance');
 const isArrayOfCurrencies = isArrayOfType('currency');
 
+function isTupleOfTwo(type: string): IsPredicate {
+  return spec => spec.type == 'tuple'
+    && spec.items.length == 2
+    && spec.items[0].type == type
+    && spec.items[1].type == type
+  ;
+}
+
+const isTupleOfTwoCurrencies = isTupleOfTwo('currency');
+
 function countArgs(event: EventSpec, is: IsPredicate): number {
   let count = 0;
   
@@ -58,6 +68,29 @@ function asOneToOne(ctx: AutomagicContext, event: EventSpec): void {
   };
 }
 
+function asCommonSetWithTuplesOfTwoCurrencies(ctx: AutomagicContext, event: EventSpec): void {
+  const balanceArgs = event.args.filter(item => isBalance(item.spec));
+  const tupleOfTwoCurrenciesArgs = event.args.filter(item => isTupleOfTwoCurrencies(item.spec));
+  const count = balanceArgs.length;
+  
+  for (let i = 0; i < count; i++) {
+    const balance = balanceArgs[i];
+    const tuple = tupleOfTwoCurrenciesArgs[i];
+    
+    const asBalance = balance.spec as spec.Balance;
+    asBalance.currency = {
+      lookup: {
+        match: '^.*$',
+        replace: `${tuple.name}.0`,
+      },
+      lookup2: {
+        match: '^.*$',
+        replace: `${tuple.name}.1`,
+      },
+    };
+  }
+}
+
 function asDefault(ctx: AutomagicContext, event: EventSpec): void {
   for (const arg of event.args) {
     if (isBalance(arg.spec)) {
@@ -73,11 +106,14 @@ export function detectBalanceCurrency(ctx: AutomagicContext, event: EventSpec): 
   const currencyArgsCount = countArgs(event, isCurrency);
   const arrayOfBalancesArgsCount = countArgs(event, isArrayOfBalances);
   const arrayOfCurrenciesArgsCount = countArgs(event, isArrayOfCurrencies);
+  const tupleOfTwoCurrenciesArgsCount = countArgs(event, isTupleOfTwoCurrencies);
   
   if (arrayOfBalancesArgsCount == 1 && arrayOfCurrenciesArgsCount == 1) {
     asParallelArrays(ctx, event);
   } else if (balanceArgsCount == 1 && currencyArgsCount == 1) {
     asOneToOne(ctx, event);
+  } else if (balanceArgsCount == tupleOfTwoCurrenciesArgsCount) {
+    asCommonSetWithTuplesOfTwoCurrencies(ctx, event);
   } else if (balanceArgsCount > 0 && currencyArgsCount == 0) {
     asDefault(ctx, event);
   }
