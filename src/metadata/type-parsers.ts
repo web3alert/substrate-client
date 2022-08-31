@@ -16,6 +16,8 @@ import type {
 import type { CurrencyRegistry } from './currency-registry';
 import type * as spec from './type-specs';
 
+type Lookup = { match: string; replace: string };
+
 export type ParserContext = {
   currencies: CurrencyRegistry;
   path: string[];
@@ -28,6 +30,72 @@ export type Parser<T extends Json = Json> = (value: Codec, ctx: ParserContext) =
 function isPlainCurrency(currency: spec.BalanceCurrency): currency is spec.BalancyCurrencyPlain {
   return 'plain' in currency;
 };
+
+
+function getLookupSymbol(ctx: ParserContext, lookup?: Lookup): string | undefined {
+  if (!lookup) {
+    return undefined;
+  }
+  
+  const lookupPath = ctx.path
+    .join('.')
+    .replace(new RegExp(lookup.match), lookup.replace)
+    .split('.')
+  ;
+  
+  const currencyArgValue = _.get(ctx.rawArgs, lookupPath);
+  const currencyArgValueParsed = parseCurrency(currencyArgValue);
+  
+  if (typeof currencyArgValueParsed == 'string') {
+    return currencyArgValueParsed;
+  }
+  
+  return undefined;
+}
+
+// 🌈​🦄​🦋​✨🥰
+function getCurrencyInfo(ctx: ParserContext, spec: spec.Balance): CurrencyInfo | undefined {
+  if (!spec.currency) {
+    return undefined;
+  }
+  
+  if (isPlainCurrency(spec.currency)) {
+    const symbol = spec.currency.plain;
+    
+    return ctx.currencies.get(symbol);
+  } else {
+    const symbol = getLookupSymbol(ctx, spec.currency.lookup);
+    const symbol2 = getLookupSymbol(ctx, spec.currency.lookup2);
+    
+    if ((symbol && symbol2 && symbol2 == symbol) || (symbol && !symbol2)) {
+      return ctx.currencies.get(symbol);
+    }
+  }
+  
+  return undefined;
+}
+
+export function parseCurrency(raw: Json): Json {
+  if (typeof raw == 'object' && raw != null) {
+    const tryPaths = [
+      'token',
+      'vToken',
+      'stable',
+      'vsToken',
+      'vsBond.0',
+    ];
+    
+    for (const tryPath of tryPaths) {
+      const value = _.get(raw, tryPath);
+      
+      if (typeof value == 'string') {
+        return value;
+      }
+    }
+  }
+  
+  return raw;
+}
 
 export function raw(): Parser<Json> {
   return value => value.toJSON();
@@ -128,92 +196,44 @@ export type BalanceOptions = {
 
 export function balance(options?: BalanceOptions): Parser<number> {
   const parseRaw: Parser<number> = options?.parseRaw || raw() as Parser<number>;
-
+  
   return (value, ctx) => {
     const specAsBalance = ctx.spec as spec.Balance;
     const raw = parseRaw(value, ctx);
-
-    if (specAsBalance.currency) {
-      let currency: CurrencyInfo | undefined = undefined;
-
-      if (isPlainCurrency(specAsBalance.currency)) {
-        const symbol = specAsBalance.currency.plain;
-
-        currency = ctx.currencies.get(symbol);
-      } else {
-        const lookup = specAsBalance.currency.lookup;
-        const lookupPath = ctx.path
-          .join('.')
-          .replace(new RegExp(lookup.match), lookup.replace)
-          .split('.')
-          ;
-
-        const currencyArgValueDecoded = _.get(ctx.rawArgs, lookupPath);
-
-        // 🌈​🦄​🦋​✨🥰
-        if (typeof currencyArgValueDecoded == 'object' && currencyArgValueDecoded['token']) {
-          const symbol = currencyArgValueDecoded['token'];
-
-          if (typeof symbol == 'string') {
-            currency = ctx.currencies.get(symbol);
-          }
-        }
-      }
-
-      if (currency) {
-        return raw / Math.pow(10, currency.decimals);
-      }
+    
+    const currencyInfo = getCurrencyInfo(ctx, specAsBalance);
+    if (currencyInfo) {
+      return raw / Math.pow(10, currencyInfo.decimals);
     }
-
+    
     return raw;
   };
 }
 
 export function humanBalance(options?: BalanceOptions): Parser<Json> {
   const parseRaw: Parser<number> = options?.parseRaw || raw() as Parser<number>;
-
+  
   return (value, ctx) => {
     const specAsBalance = ctx.spec as spec.Balance;
     const raw = parseRaw(value, ctx);
-
-    if (specAsBalance.currency) {
-      let currency: CurrencyInfo | undefined = undefined;
-
-      if (isPlainCurrency(specAsBalance.currency)) {
-        const symbol = specAsBalance.currency.plain;
-
-        currency = ctx.currencies.get(symbol);
+    
+    const currencyInfo = getCurrencyInfo(ctx, specAsBalance);
+    if (currencyInfo) {
+      const rawBalance = (raw / Math.pow(10, currencyInfo.decimals));
+      
+      let formatBalance = "";
+      const splited = rawBalance.toString().split('.');
+      if (splited.length == 2 && splited[1].length > 4) {
+        formatBalance = rawBalance.toFixed(4);
       } else {
-        const lookup = specAsBalance.currency.lookup;
-        const lookupPath = ctx.path
-          .join('.')
-          .replace(new RegExp(lookup.match), lookup.replace)
-          .split('.')
-          ;
-
-        const currencyArgValueDecoded = _.get(ctx.rawArgs, lookupPath);
-
-        // 🌈​🦄​🦋​✨🥰
-        if (typeof currencyArgValueDecoded == 'object' && currencyArgValueDecoded['token']) {
-          const symbol = currencyArgValueDecoded['token'];
-
-          if (typeof symbol == 'string') {
-            currency = ctx.currencies.get(symbol);
-          }
-        }
+        formatBalance = rawBalance.toString();
       }
-      if (currency) {
-        const rawBalance = (raw / Math.pow(10, currency.decimals))
-        let formatBalance = ""
-        const splited = rawBalance.toString().split('.')
-        if (splited.length == 2 && splited[1].length > 4) {
-          formatBalance = rawBalance.toFixed(4)
-        }
-        else formatBalance = rawBalance.toString()
-        let result = formatBalance + ' ' + currency.symbol;
-        return result
-      }
+      
+      let result = formatBalance + ' ' + currencyInfo.symbol;
+      
+      return result;
     }
+    
     return raw;
   };
 }

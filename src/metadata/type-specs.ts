@@ -27,6 +27,10 @@ export type BalanceCurrencyLookup = {
     match: string;
     replace: string;
   };
+  lookup2?: {
+    match: string;
+    replace: string;
+  };
 };
 
 export type BalanceCurrency =
