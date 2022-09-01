@@ -483,14 +483,17 @@ export function humanArray<T extends Json = Json>(options: ArrayOptions<T>): Par
   };
 }
 
-export function option<T extends Json = Json>(options: ArrayOptions<T>): Parser<T> {
+export function option<T extends Json = Json>(options: ArrayOptions<T>): Parser<T | null> {
   const {
     parseItem,
   } = options;
 
   return (value, ctx) => {
     const raw = value as Option<Codec>
-    return parseItem(raw.value, ctx)
+    if(raw.value.isEmpty){
+      return null
+    }
+    else return parseItem(raw.value, ctx)
   };
 }
 
