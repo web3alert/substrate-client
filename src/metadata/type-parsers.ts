@@ -16,7 +16,7 @@ import type {
 } from '../types';
 import type { CurrencyRegistry } from './currency-registry';
 import type * as spec from './type-specs';
-import type { Junction } from '@polkadot/types/interfaces';
+import type { Junction, JunctionV0 } from '@polkadot/types/interfaces';
 
 type Lookup = { match: string; replace: string };
 
@@ -215,7 +215,7 @@ function checkJunctionIndex(junctions: any): number {
   return range(1, 8).find(index => junctions[`isX${index}`]) ?? 0
 }
 
-function parseJunction(junction: Junction): Json {
+function parseJunction(junction: Junction | JunctionV0): Json {
   if (junction.isAccountId32) {
     let hash = junction.asAccountId32.id.toString() as string;
     let short = hash.substring(0, 7) + '...' + hash.substring(hash.length - 5, hash.length)

@@ -260,25 +260,50 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     if(source.type.includes('Lookup') && source.lookupIndex){
       real_source = ctx.lookup.getTypeDef(source.lookupIndex)
     }
-    const subs = (real_source.sub! as TypeDef[]).map(item => ({ ...item }));
-    const props: Record<string, spec.Spec> = {};
-    const parsersRaw: Record<string, parser.Parser> = {};
-    const parsersHuman: Record<string, parser.Parser> = {};
-    for (const sub of subs) {
-      const name = sub.name!;
-      const handler = ctx.wrappers.get(ctx, sub, `${path}.${name}`);
+    if(source.lookupName == 'XcmV0MultiLocation'){
+      const subs = (real_source.sub! as TypeDef[]).map(item => ({ ...item }));
+    
+      const props: Record<string, spec.Spec> = {};
+      const parsersRaw: Record<string, parser.Parser> = {};
+      const parsersHuman: Record<string, parser.Parser> = {};
       
-      props[name] = handler.spec;
-      parsersRaw[name] = handler.parse.raw;
-      parsersHuman[name] = handler.parse.human;
+      for (const sub of subs) {
+        const name = sub.name!;
+        const handler = ctx.wrappers.get(ctx, sub, `${path}.${name}`);
+        
+        props[name] = handler.spec;
+        parsersRaw[name] = handler.parse.raw;
+        parsersHuman[name] = handler.parse.human;
+      }
+      return {
+        spec: spec.object({ props }),
+        parse: {
+          raw: parser.enumObject({ propParsers: parsersRaw }),
+          human: parser.junctions(),
+        },
+      };
     }
-    return {
-      spec: spec.object({ props }),
-      parse: {
-        raw: parser.object({ propParsers: parsersRaw }),
-        human: parser.object({ propParsers: parsersHuman }),
-      },
-    };
+    else {
+      const subs = (real_source.sub! as TypeDef[]).map(item => ({ ...item }));
+      const props: Record<string, spec.Spec> = {};
+      const parsersRaw: Record<string, parser.Parser> = {};
+      const parsersHuman: Record<string, parser.Parser> = {};
+      for (const sub of subs) {
+        const name = sub.name!;
+        const handler = ctx.wrappers.get(ctx, sub, `${path}.${name}`);
+        
+        props[name] = handler.spec;
+        parsersRaw[name] = handler.parse.raw;
+        parsersHuman[name] = handler.parse.human;
+      }
+      return {
+        spec: spec.object({ props }),
+        parse: {
+          raw: parser.object({ propParsers: parsersRaw }),
+          human: parser.object({ propParsers: parsersHuman }),
+        },
+      };
+    }
   }),
   bind([
     'Junctions',
