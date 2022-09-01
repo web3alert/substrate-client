@@ -84,7 +84,7 @@ export function parseCurrency(raw: Json): Json {
       'vToken',
       'stable',
       'vsToken',
-      'vsBond.0',
+      //'vsBond.0',
     ];
 
     for (const tryPath of tryPaths) {
