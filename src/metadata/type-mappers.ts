@@ -45,12 +45,14 @@ const RE_VEC = /^Vec<(.+)>$/;
 const RE_OPTION = /^Option<(.+)>$/;
 const RE_TUPLE = /^\(((?:[a-zA-Z0-9-_]+,?)*)\)$/;
 
-const unknown: Handler = {
-  spec: spec.unknown(),
-  parse: {
-    raw: parser.raw(),
-    human: parser.human(),
-  },
+const unknown:Mapper = (ctx, source, path) => {
+  return {
+    spec: spec.unknown(),
+    parse: {
+      raw: parser.raw(),
+      human: parser.unknownHuman(ctx, source, path),
+    },
+  }
 };
 
 const skip: Handler = {
@@ -64,10 +66,10 @@ const skip: Handler = {
 export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
   // [TypeDefInfo.BTreeMap]:(ctx, source, path) => {
   //   const subs = (source.sub! as TypeDef[]).map(item => ({ ...item }));
-    
+
   //   const keys = ctx.wrappers.get(ctx, subs[0], `${path}(key)`);
   //   const values = ctx.wrappers.get(ctx, subs[1], `${path}(value)`);
-    
+
   //   return {
   //     spec: spec.map({
   //       keys: keys.spec as spec.String | spec.Int,
@@ -81,29 +83,29 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
   // },
   [TypeDefInfo.Compact]: (ctx, source, path) => {
     const sub = { ...source.sub! as TypeDef };
-    
+
     if (source.typeName) {
       sub.typeName = source.typeName;
     }
-    
+
     return ctx.wrappers.get(ctx, sub, path);
   },
   [TypeDefInfo.Enum]: (ctx, source, path) => {
     const subs = (source.sub! as TypeDef[]).map(item => ({ ...item }));
-    
+
     const props: Record<string, spec.Spec> = {};
     const parsersRaw: Record<string, parser.Parser> = {};
     const parsersHuman: Record<string, parser.Parser> = {};
-    
+
     for (const sub of subs) {
       const name = sub.name!;
       const handler = ctx.wrappers.get(ctx, sub, `${path}.${name}`);
-      
+
       props[name] = handler.spec;
       parsersRaw[name] = handler.parse.raw;
       parsersHuman[name] = handler.parse.human;
     }
-    
+
     return {
       spec: spec.object({ props }),
       parse: {
@@ -117,29 +119,29 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
   },
   // [TypeDefInfo.Si]: (ctx, source, path) => {
   //   const sub = { ...ctx.lookup.getTypeDef(source.lookupIndex!) };
-    
+
   //   if (source.typeName) {
   //     sub.typeName = source.typeName;
   //   }
-    
+
   //   return ctx.wrappers.get(ctx, sub, path);
   // },
   [TypeDefInfo.Struct]: (ctx, source, path) => {
     const subs = (source.sub! as TypeDef[]).map(item => ({ ...item }));
-    
+
     const props: Record<string, spec.Spec> = {};
     const parsersRaw: Record<string, parser.Parser> = {};
     const parsersHuman: Record<string, parser.Parser> = {};
-    
+
     for (const sub of subs) {
       const name = sub.name!;
       const handler = ctx.wrappers.get(ctx, sub, `${path}.${name}`);
-      
+
       props[name] = handler.spec;
       parsersRaw[name] = handler.parse.raw;
       parsersHuman[name] = handler.parse.human;
     }
-    
+
     return {
       spec: spec.object({ props }),
       parse: {
@@ -150,13 +152,13 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
   },
   [TypeDefInfo.Tuple]: (ctx, source, path) => {
     const subs = (source.sub! as TypeDef[]).map(item => ({ ...item }));
-    
+
     if (source.typeName) {
       const match = source.typeName.match(RE_TUPLE);
-      
+
       if (match) {
         const names = match[1].split(',');
-        
+
         if (subs.length == names.length) {
           for (let i = 0; i < subs.length; i++) {
             subs[i].typeName = names[i];
@@ -164,11 +166,11 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
         }
       }
     }
-    
+
     const items = subs.map((sub, index) => {
       return ctx.wrappers.get(ctx, sub, `${path}[${index}]`);
     });
-    
+
     return {
       spec: spec.tuple({ items: items.map(item => item.spec) }),
       parse: {
@@ -179,17 +181,17 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
   },
   [TypeDefInfo.Vec]: (ctx, source, path) => {
     const sub = { ...source.sub! as TypeDef };
-    
+
     if (source.typeName) {
       const match = source.typeName.match(RE_VEC);
-      
+
       if (match) {
         sub.typeName = match[1];
       }
     }
-    
+
     const itemsHandler = ctx.wrappers.get(ctx, sub, `${path}[$]`);
-    
+
     return {
       spec: spec.array({ items: itemsHandler.spec }),
       parse: {
@@ -200,9 +202,9 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
   },
   [TypeDefInfo.Option]: (ctx, source, path) => {
     const sub = { ...source.sub! as TypeDef };
-    
+
     if (source.typeName) {
-      const match = source.typeName.match(RE_OPTION);      
+      const match = source.typeName.match(RE_OPTION);
       if (match) {
         sub.typeName = match[1];
       }
@@ -252,25 +254,25 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
         human: parser.bool(),
       },
     };
-  }),  
+  }),
   bind([
     'MultiLocation',
   ], (ctx, source, path) => {
     let real_source = source
-    if(source.type.includes('Lookup') && source.lookupIndex){
+    if (source.type.includes('Lookup') && source.lookupIndex) {
       real_source = ctx.lookup.getTypeDef(source.lookupIndex)
     }
-    if(source.lookupName == 'XcmV0MultiLocation'){
+    if (source.lookupName == 'XcmV0MultiLocation') {
       const subs = (real_source.sub! as TypeDef[]).map(item => ({ ...item }));
-    
+
       const props: Record<string, spec.Spec> = {};
       const parsersRaw: Record<string, parser.Parser> = {};
       const parsersHuman: Record<string, parser.Parser> = {};
-      
+
       for (const sub of subs) {
         const name = sub.name!;
         const handler = ctx.wrappers.get(ctx, sub, `${path}.${name}`);
-        
+
         props[name] = handler.spec;
         parsersRaw[name] = handler.parse.raw;
         parsersHuman[name] = handler.parse.human;
@@ -291,7 +293,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
       for (const sub of subs) {
         const name = sub.name!;
         const handler = ctx.wrappers.get(ctx, sub, `${path}.${name}`);
-        
+
         props[name] = handler.spec;
         parsersRaw[name] = handler.parse.raw;
         parsersHuman[name] = handler.parse.human;
@@ -317,7 +319,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'DispatchResult','Call','Proposal','Data'
+    'DispatchResult', 'Call', 'Proposal', 'Data'
   ], (ctx, source, path) => {
     return {
       spec: spec.skip(),
@@ -366,7 +368,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     const parseUnsignedFixedPoint = parser.balance({
       parseRaw: parser.fixedPoint({ decimals: 18 }),
     });
-    
+
     return {
       spec: spec.balance(),
       parse: {
@@ -381,7 +383,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     const parseSignedFixedPoint = parser.balance({
       parseRaw: parser.fixedPoint({ decimals: 18 }),
     });
-    
+
     return {
       spec: spec.balance(),
       parse: {
@@ -402,7 +404,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'CurrencyId','CurrencyIdOf'
+    'CurrencyId', 'CurrencyIdOf'
   ], (ctx, source, path) => {
     return {
       spec: spec.currency(),
@@ -413,7 +415,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'Bytes','Kind'
+    'Bytes', 'Kind'
   ], (ctx, source, path) => {
     return {
       spec: spec.hash(),
@@ -424,7 +426,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'H256','AuthorityId','CallHash','MessageId'
+    'H256', 'AuthorityId', 'CallHash', 'MessageId', '[u8;32]', 'Public'
   ], (ctx, source, path) => {
     return {
       spec: spec.hash(),
@@ -486,7 +488,7 @@ function buildIndex(
       index[key] = item.mapper;
     }
   }
-  
+
   return index;
 }
 
@@ -494,52 +496,52 @@ export const DEFAULT_PRIMITIVE_MAPPERS = buildIndex(DEFAULT_PRIMITIVE_MAPPER_BIN
 
 export const wrapper: Mapper = (ctx, source, path) => {
   let mapper: Mapper | undefined = undefined;
-  
+
   if (source.typeName != undefined) {
     mapper = ctx.primitives.index[source.typeName];
-    
+
     if (!mapper) {
       ctx.primitives.unknowns.complex.add(source.typeName, path);
     }
   }
-  
+
   if (!mapper) {
     mapper = ctx.wrappers.index[source.info];
-    
+
     if (!mapper) {
       ctx.wrappers.unknowns.add(source.info, path);
     }
   }
-  
+
   if (mapper) {
     return mapper(ctx, source, path);
   } else {
-    return unknown;
+    return unknown(ctx, source, path);
   }
 };
 
 export const primitive: Mapper = (ctx, source, path) => {
   let mapper: Mapper | undefined = undefined;
-  
+
   if (source.typeName != undefined) {
     mapper = ctx.primitives.index[source.typeName];
-    
+
     if (!mapper) {
       ctx.primitives.unknowns.complex.add(source.typeName, path);
     }
   }
-  
+
   if (!mapper) {
     mapper = ctx.primitives.index[source.type];
-    
+
     if (!mapper) {
       ctx.primitives.unknowns.basic.add(source.type, path);
     }
   }
-  
+
   if (mapper) {
     return mapper(ctx, source, path);
   } else {
-    return unknown;
+    return unknown(ctx, source, path);
   }
 };

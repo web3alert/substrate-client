@@ -89,7 +89,7 @@ function extrinsicSucceeded(eventRecords: EventRecord[], extrinsicIndex: number)
 function castCallArgByName<T extends Codec>(
   call: CallWrapper,
   argName: string,
-  argType: string,
+  argTypes: string[],
 ): T {
   const index = call.source.meta.args.findIndex(item => item.name.toString() == argName);
   
@@ -102,11 +102,11 @@ function castCallArgByName<T extends Codec>(
   
   const argTypeMetadata = call.source.meta.args[index].type.toString();
   
-  if (argTypeMetadata != argType) {
+  if (!argTypes.includes(argTypeMetadata)) {
     throw error('argument type is not as expected', {
       call: call.name.short,
       arg: argName,
-      expected: argType,
+      expected: argTypes.join(' | '),
       received: argTypeMetadata,
     });
   }
@@ -137,7 +137,7 @@ function handleCall(options: HandleCallOptions): Result<Event> {
   
   try {
     if (BATCH_CALLS.includes(call.name.short)) {
-      const batchedCalls = castCallArgByName<Vec<Call>>(call, 'calls', 'Vec<Call>');
+      const batchedCalls = castCallArgByName<Vec<Call>>(call, 'calls', ['Vec<Call>']);
       
       for (const batchedCall of batchedCalls) {
         result.merge(handleCall({
@@ -161,11 +161,11 @@ function handleCall(options: HandleCallOptions): Result<Event> {
       let wrappedCall: Call;
       
       if (call.name.short == MULTISIG_AS_MULTI_CALL) {
-        const wrappedOpaqueCall = castCallArgByName<OpaqueCall>(call, 'call', 'OpaqueCall<T>');
+        const wrappedOpaqueCall = castCallArgByName<OpaqueCall>(call, 'call', ['OpaqueCall<T>','WrapperKeepOpaque<Call>']);
         
         wrappedCall = registry.createType('Call', wrappedOpaqueCall.toHex());
       } else {
-        wrappedCall = castCallArgByName<Call>(call, 'call', 'Call');
+        wrappedCall = castCallArgByName<Call>(call, 'call', ['Call']);
       }
       
       let signer = call.signer;
@@ -175,7 +175,7 @@ function handleCall(options: HandleCallOptions): Result<Event> {
           ? 'AccountId20'
           : 'AccountId32'
         ;
-        const realSigner = castCallArgByName<AccountId>(call, 'real', addressType);
+        const realSigner = castCallArgByName<AccountId>(call, 'real', [addressType]);
         
         signer = realSigner.toString();
       }
