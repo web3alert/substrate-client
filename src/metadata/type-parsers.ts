@@ -8,7 +8,7 @@ import type {
   Tuple,
   Option
 } from '@polkadot/types';
-import type { Codec } from '@polkadot/types/types';
+import type { Codec, TypeDef } from '@polkadot/types/types';
 import type {
   Json,
   Object,
@@ -17,6 +17,7 @@ import type {
 import type { CurrencyRegistry } from './currency-registry';
 import type * as spec from './type-specs';
 import type { Junction, JunctionV0 } from '@polkadot/types/interfaces';
+import type { Context } from './type-mappers';
 
 type Lookup = { match: string; replace: string };
 
@@ -107,6 +108,29 @@ export function human(): Parser<Json> {
   return value => value.toHuman();
 }
 
+export function unknownHuman(main_context: Context, source: TypeDef, path: string): Parser<Json> {
+  var expand_source = source
+  if (source.type.includes('Lookup') && source.lookupIndex) {
+    expand_source = main_context.lookup.getTypeDef(source.lookupIndex)
+  }
+  return (value, ctx) => {
+    if (expand_source.type === 'Null') {
+      return null
+    }
+    let handler = main_context.wrappers.get(main_context, expand_source, path)
+    if (handler.spec.type == 'unknown') {
+      //console.log(`Warning: Type ${expand_source.type} has no parser.`)
+      return value.toHuman()
+    }
+    return handler.parse.human(value, {
+      currencies: ctx.currencies,
+      path: ctx.path,
+      spec: handler.spec,
+      rawArgs: ctx.rawArgs,
+    })
+  }
+}
+
 export function bool(): Parser<boolean> {
   return value => value.toJSON() as boolean;
 }
@@ -122,8 +146,10 @@ export function bigint(): Parser<number> {
 export function shortHash(): Parser<Json> {
   return value => {
     let hash = value.toString() as string;
-    let short = hash.substring(0, 7) + '...' + hash.substring(hash.length - 5, hash.length)
-    return short
+    if (hash.length > 12) {
+      return hash.substring(0, 7) + '...' + hash.substring(hash.length - 5, hash.length)
+    }
+    else return hash;
   }
 }
 
@@ -197,7 +223,10 @@ export function junctions(): Parser<Json> {
     const raw = value as any
     const index = checkJunctionIndex(raw)
     let result: Json = {}
-    if (index == 1) {
+    if (index == 0) {
+      result = value.toHuman()
+    }
+    else if (index == 1) {
       result = parseJunction(raw[`asX${index}`])
     }
     else {
@@ -235,17 +264,25 @@ function parseJunction(junction: Junction | JunctionV0): Json {
     }
     return result
   } else if (junction.isGeneralIndex) {
-    return junction.asGeneralIndex.toHuman()
+    return {
+      generalIndex: junction.asGeneralIndex.toJSON()
+    }
   } else if (junction.isGeneralKey) {
-    return junction.asGeneralKey.toHuman()
+    return {
+      generalKey: junction.asGeneralKey.toHuman()
+    }
   } else if (junction.isPalletInstance) {
-    return junction.asPalletInstance.toHuman()
+    return {
+      palletInstance: junction.asPalletInstance.toJSON()
+    }
   } else if (junction.isParachain) {
     return {
-      parachain: junction.asParachain.toHuman()
+      parachain: junction.asParachain.toJSON()
     }
   } else if (junction.isPlurality) {
-    return junction.asPlurality.toHuman()
+    return {
+      plurality: junction.asPlurality.toHuman()
+    }
   }
   return junction.toHuman()
 }
@@ -490,7 +527,7 @@ export function option<T extends Json = Json>(options: ArrayOptions<T>): Parser<
 
   return (value, ctx) => {
     const raw = value as Option<Codec>
-    if(raw.value.isEmpty){
+    if (raw.value.isEmpty) {
       return null
     }
     else return parseItem(raw.value, ctx)
