@@ -45,7 +45,7 @@ const RE_VEC = /^Vec<(.+)>$/;
 const RE_OPTION = /^Option<(.+)>$/;
 const RE_TUPLE = /^\(((?:[a-zA-Z0-9-_]+,?)*)\)$/;
 
-const unknown:Mapper = (ctx, source, path) => {
+const unknown: Mapper = (ctx, source, path) => {
   return {
     spec: spec.unknown(),
     parse: {
@@ -319,7 +319,18 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'DispatchResult', 'Call', 'Proposal', 'Data'
+    'Call', 'Proposal'
+  ], (ctx, source, path) => {
+    return {
+      spec: spec.skip(),
+      parse: {
+        raw: parser.raw(),
+        human: parser.call(ctx, source, path),
+      },
+    };
+  }),
+  bind([
+    'DispatchResult', 'Data'
   ], (ctx, source, path) => {
     return {
       spec: spec.skip(),
