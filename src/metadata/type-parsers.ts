@@ -6,7 +6,8 @@ import type {
   Enum,
   Vec,
   Tuple,
-  Option
+  Option,
+  GenericCall
 } from '@polkadot/types';
 import type { Codec, TypeDef } from '@polkadot/types/types';
 import type {
@@ -128,6 +129,28 @@ export function unknownHuman(main_context: Context, source: TypeDef, path: strin
       spec: handler.spec,
       rawArgs: ctx.rawArgs,
     })
+  }
+}
+
+export function call(main_context: Context, source: TypeDef, path: string): Parser<Json> {
+  return (value, ctx) => {
+    const call = value as GenericCall
+    const module = call.section
+    const method = call.method
+    const args: Json = {}
+    for (let i = 0; i < call.args.length; i++) {
+      const entry = call.argsEntries[i]
+      const name = entry[0]!;
+      const argDef = call.argsDef[name]
+      const argSource = main_context.lookup.getTypeDef(argDef.toString())
+      const handler = main_context.wrappers.get(main_context, argSource, `${path}.${name}`);
+      args[name] = handler.parse.human(entry[1], ctx);
+    }
+    return {
+      module,
+      method,
+      args
+    }
   }
 }
 
