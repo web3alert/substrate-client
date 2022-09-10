@@ -109,18 +109,18 @@ export function human(): Parser<Json> {
   return value => value.toHuman();
 }
 
-export function unknownHuman(main_context: Context, source: TypeDef, path: string): Parser<Json> {
-  var expand_source = source
+export function unknownHuman(mainContext: Context, source: TypeDef, path: string): Parser<Json> {
+  var expandSource = source
   if (source.type.includes('Lookup') && source.lookupIndex) {
-    expand_source = main_context.lookup.getTypeDef(source.lookupIndex)
+    expandSource = mainContext.lookup.getTypeDef(source.lookupIndex)
   }
   return (value, ctx) => {
-    if (expand_source.type === 'Null') {
+    if (expandSource.type === 'Null') {
       return null
     }
-    let handler = main_context.wrappers.get(main_context, expand_source, path)
+    let handler = mainContext.wrappers.get(mainContext, expandSource, path)
     if (handler.spec.type == 'unknown') {
-      //console.log(`Warning: Type ${expand_source.type} has no parser.`)
+      //console.log(`Warning: Type ${expandSource.type} has no parser.`)
       return value.toHuman()
     }
     return handler.parse.human(value, {
@@ -132,19 +132,19 @@ export function unknownHuman(main_context: Context, source: TypeDef, path: strin
   }
 }
 
-export function call(main_context: Context, source: TypeDef, path: string): Parser<Json> {
+export function call(mainContext: Context, source: TypeDef, path: string): Parser<Json> {
   return (value, ctx) => {
-    const call = value as GenericCall
-    const module = call.section
-    const method = call.method
+    const callValue = value as GenericCall
+    const module = callValue.section
+    const method = callValue.method
     const args: Json = {}
-    for (let i = 0; i < call.args.length; i++) {
-      const entry = call.argsEntries[i]
-      const name = entry[0]!;
-      const argDef = call.argsDef[name]
-      const argSource = main_context.lookup.getTypeDef(argDef.toString())
-      const handler = main_context.wrappers.get(main_context, argSource, `${path}.${name}`);
-      args[name] = handler.parse.human(entry[1], ctx);
+    for (let i = 0; i < callValue.args.length; i++) {
+      const argEntry = callValue.argsEntries[i]
+      const argName = argEntry[0];
+      const argType = callValue.argsDef[argName].toString()
+      const argSource = mainContext.lookup.getTypeDef(argType)
+      const handler = mainContext.wrappers.get(mainContext, argSource, `${path}.${argName}`);
+      args[argName] = handler.parse.human(argEntry[1], ctx);
     }
     return {
       module,
@@ -209,7 +209,7 @@ export function bytes(): Parser<Json> {
 export function moment(): Parser<Json> {
   return value => {
     var date = new Date(Number(value))
-    let formatted_date =
+    let formattedDate =
       date.getFullYear() +
       "-" +
       (date.getMonth() + 1) +
@@ -221,7 +221,7 @@ export function moment(): Parser<Json> {
       date.getMinutes() +
       ":" +
       date.getSeconds()
-    return formatted_date + " (UTC+0)"
+    return formattedDate + " (UTC+0)"
   }
 }
 
