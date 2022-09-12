@@ -166,43 +166,27 @@ export function bigint(): Parser<number> {
   return value => Number((value as Int).toBigInt());
 }
 
+function makeHashShorter(hash:string):string {
+  if (hash.length > 12) {
+    return hash.substring(0, 7) + '...' + hash.substring(hash.length - 5, hash.length)
+  }
+  else return hash;
+}
+
 export function shortHash(): Parser<Json> {
   return value => {
     let hash = value.toString() as string;
-    if (hash.length > 12) {
-      return hash.substring(0, 7) + '...' + hash.substring(hash.length - 5, hash.length)
-    }
-    else return hash;
+    return makeHashShorter(hash)
   }
 }
 
 export function bytes(): Parser<Json> {
   return value => {
-    const raw = value.toString() as string
-    let hex: string;
-    let decoded: string = ""
-    let char: string = ""
-
-    if (raw.startsWith("0x")) {
-      hex = raw.slice(2)
+    let result = value.toHuman()?.toString()
+    if(result && result.startsWith('0x')){
+      return makeHashShorter(result)
     }
-    else hex = raw
-
-    for (var i = 0; i < hex.length; i += 2) {
-      char += "%" + hex.substring(i, i + 2)
-      try {
-        decoded += decodeURIComponent(char)
-        char = ""
-      } catch {
-        continue
-      }
-    }
-
-    if (decoded === "") {
-      return value.toString().length > 40
-        ? raw.substring(0, 7) + '...' + raw.substring(raw.length - 5, raw.length)
-        : raw
-    } else return decoded
+    return result;
   }
 }
 
@@ -283,7 +267,7 @@ function parseJunction(junction: Junction | JunctionV0): Json {
     let short = hash.substring(0, 7) + '...' + hash.substring(hash.length - 5, hash.length)
     const result = {
       id: short,
-      network: junction.asAccountId32.network.toHuman()
+      network: junction.asAccountKey20.network.toHuman()
     }
     return result
   } else if (junction.isGeneralIndex) {
