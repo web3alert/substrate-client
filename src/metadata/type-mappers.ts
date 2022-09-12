@@ -432,7 +432,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
       spec: spec.hash(),
       parse: {
         raw: parser.string(),
-        human: parser.human(),
+        human: parser.bytes(),
       },
     };
   }),
