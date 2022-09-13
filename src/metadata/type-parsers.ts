@@ -144,7 +144,12 @@ export function call(mainContext: Context, source: TypeDef, path: string): Parse
       const argType = callValue.argsDef[argName].toString()
       const argSource = mainContext.lookup.getTypeDef(argType)
       const handler = mainContext.wrappers.get(mainContext, argSource, `${path}.${argName}`);
-      args[argName] = handler.parse.human(argEntry[1], ctx);
+      args[argName] = handler.parse.human(argEntry[1], {
+        currencies: ctx.currencies,
+        path: [...ctx.path,argName],
+        rawArgs: ctx.rawArgs,
+        spec: handler.spec
+      });
     }
     return {
       module,
