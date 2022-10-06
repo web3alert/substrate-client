@@ -1,0 +1,10 @@
+include:
+  project: $CI_PROJECT_NAMESPACE/ci
+  ref: v1
+  file: /package.yml
+
+pr:
+  extends: .pr
+
+release:
+  extends: .release
