@@ -30,14 +30,14 @@ const isTupleOfTwoCurrencies = isTupleOfTwo('currency');
 
 function countArgs(specs: spec.NamedSpec[], is: IsPredicate): number {
   let count = 0;
-
+  
   for (const arg of specs) {
     const spec = arg.spec
     if (is(spec)) {
       count++;
     }
   }
-
+  
   return count;
 }
 
