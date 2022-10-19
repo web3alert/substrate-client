@@ -8,11 +8,13 @@ import type { Filter } from '../filter';
 import { parse } from './parse';
 import { CurrencyRegistry } from './currency-registry';
 import { TypeRegistry } from './type-registry';
+import type { TypeMappings } from './type-mappers';
 
 export interface MetadataOptions {
   about: About;
   source: MetadataV14;
   filter: Filter;
+  typeMappings?: TypeMappings;
 }
 
 export class Metadata {
@@ -30,10 +32,13 @@ export class Metadata {
       about,
       source,
       filter,
+      typeMappings,
     } = options;
     
     const types = new TypeRegistry({
       about,
+      wrappers: typeMappings?.wrappers,
+      primitives: typeMappings?.primitives,
       lookup: source.lookup,
     });
     
