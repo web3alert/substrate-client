@@ -41,6 +41,11 @@ export type Mapper = (
   path: string,
 ) => Handler;
 
+export type TypeMappings = {
+  wrappers?: PartialRecord<TypeDefInfo, Mapper>;
+  primitives?: PartialRecord<string, Mapper>;
+};
+
 const RE_VEC = /^Vec<(.+)>$/;
 const RE_OPTION = /^Option<(.+)>$/;
 const RE_TUPLE = /^\(((?:[a-zA-Z0-9-_]+,?)*)\)$/;

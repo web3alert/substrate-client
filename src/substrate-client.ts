@@ -12,7 +12,10 @@ import type {
 } from './types';
 import type { EventRecord } from './event-record';
 import { Result } from './utils';
-import { Metadata } from './metadata';
+import {
+  TypeMappings,
+  Metadata,
+} from './metadata';
 import { Filter } from './filter';
 import { handleEvents } from './handle-events';
 import { handleCalls } from './handle-calls';
@@ -36,6 +39,7 @@ export type SubstrateClientOptions = {
   filter?: {
     patterns: string[];
   };
+  typeMappings?: TypeMappings;
 };
 
 export class SubstrateClient {
@@ -45,6 +49,7 @@ export class SubstrateClient {
   public defaultAddressFormat: AddressFormat;
   public api!: ApiPromise;
   public filter: Filter;
+  public typeMappings?: TypeMappings;
   public metadata!: Metadata;
   
   constructor(options: SubstrateClientOptions) {
@@ -54,6 +59,7 @@ export class SubstrateClient {
       config,
       defaultAddressFormat,
       filter,
+      typeMappings,
     } = options;
     
     this.wsUrl = wsUrl;
@@ -63,6 +69,7 @@ export class SubstrateClient {
     this.filter = new Filter({
       patterns: filter?.patterns ?? [],
     });
+    this.typeMappings = typeMappings;
   }
   
   public async connect(): Promise<void> {
@@ -147,6 +154,7 @@ export class SubstrateClient {
       about,
       source: pointer.apiAt.registry.metadata,
       filter: this.filter,
+      typeMappings: this.typeMappings,
     });
   }
   
