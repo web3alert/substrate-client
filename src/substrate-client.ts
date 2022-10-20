@@ -181,14 +181,16 @@ export class SubstrateClient {
     
     const result = new Result<Event>();
     
-    result.merge(handleEvents({
+    result.merge(await handleEvents({
+      api: this.api,
       filter: this.filter,
       metadata: this.metadata,
       blockNumber: pointer.blockNumber,
       eventRecords,
     }));
     
-    result.merge(handleCalls({
+    result.merge(await handleCalls({
+      api: this.api,
       filter: this.filter,
       metadata: this.metadata,
       registry: pointer.apiAt.registry,

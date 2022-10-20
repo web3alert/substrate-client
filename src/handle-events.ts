@@ -11,16 +11,19 @@ import {
   isErrorDetails,
   error,
 } from './error';
+import type { ApiPromise } from '@polkadot/api';
 
 export type HandleEventsOptions = {
+  api: ApiPromise,
   filter: Filter;
   metadata: Metadata;
   blockNumber: number;
   eventRecords: EventRecord[];
 };
 
-export function handleEvents(options: HandleEventsOptions): Result<Event> {
+export async function handleEvents(options: HandleEventsOptions): Promise<Result<Event>> {
   const {
+    api,
     filter,
     metadata,
     blockNumber,
@@ -43,7 +46,8 @@ export function handleEvents(options: HandleEventsOptions): Result<Event> {
     }
     
     try {
-      result.items.push(handleEvent({
+      result.items.push(await handleEvent({
+        api,
         metadata,
         blockNumber,
         index,
