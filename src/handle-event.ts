@@ -9,8 +9,10 @@ import type {
   Metadata,
 } from './metadata';
 import { error } from './error';
+import type { ApiPromise } from '@polkadot/api';
 
 export interface HandleEventOptions {
+  api: ApiPromise;
   metadata: Metadata;
   blockNumber: number;
   index: number | null;
@@ -21,8 +23,9 @@ export interface HandleEventOptions {
   };
 }
 
-export function handleEvent(options: HandleEventOptions): Event {
+export async function handleEvent(options: HandleEventOptions): Promise<Event> {
   const {
+    api,
     metadata,
     blockNumber,
     index,
@@ -60,14 +63,15 @@ export function handleEvent(options: HandleEventOptions): Event {
     const argHandler = eventSpec.args[i];
     
     const ctx: parser.ParserContext = {
+      api: api,
       currencies: metadata.currencies,
       path: [argHandler.name],
       spec: argHandler.spec,
       rawArgs,
     };
     
-    raw[argHandler.name] = argHandler.parse.raw(argValue, ctx);
-    human[argHandler.name] = argHandler.parse.human(argValue, ctx);
+    raw[argHandler.name] = await argHandler.parse.raw(argValue, ctx);
+    human[argHandler.name] = await argHandler.parse.human(argValue, ctx);
   }
   
   return {

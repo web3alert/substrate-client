@@ -27,6 +27,7 @@ import {
   isErrorDetails,
   error,
 } from './error';
+import type { ApiPromise } from '@polkadot/api';
 
 type CallWrapper = {
   name: EventName;
@@ -115,6 +116,7 @@ function castCallArgByName<T extends Codec>(
 }
 
 interface HandleCallOptions {
+  api: ApiPromise,
   filter: Filter;
   metadata: Metadata;
   registry: Registry;
@@ -123,8 +125,9 @@ interface HandleCallOptions {
   call: CallWrapper;
 }
 
-function handleCall(options: HandleCallOptions): Result<Event> {
+async function handleCall(options: HandleCallOptions): Promise<Result<Event>> {
   const {
+    api,
     filter,
     metadata,
     registry,
@@ -140,7 +143,8 @@ function handleCall(options: HandleCallOptions): Result<Event> {
       const batchedCalls = castCallArgByName<Vec<Call>>(call, 'calls', ['Vec<Call>']);
       
       for (const batchedCall of batchedCalls) {
-        result.merge(handleCall({
+        result.merge(await handleCall({
+          api,
           filter,
           metadata,
           registry,
@@ -176,7 +180,8 @@ function handleCall(options: HandleCallOptions): Result<Event> {
         signer = realSigner.toString();
       }
       
-      result.merge(handleCall({
+      result.merge(await handleCall({
+        api,
         filter,
         metadata,
         registry,
@@ -193,7 +198,8 @@ function handleCall(options: HandleCallOptions): Result<Event> {
         },
       }));
     } else if (filter.match(call.name.full)) {
-      const event = handleEvent({
+      const event = await handleEvent({
+        api,
         metadata,
         blockNumber,
         index,
@@ -236,6 +242,7 @@ function handleCall(options: HandleCallOptions): Result<Event> {
 }
 
 export type HandleCallsOptions = {
+  api: ApiPromise,
   filter: Filter;
   metadata: Metadata;
   registry: Registry;
@@ -243,8 +250,9 @@ export type HandleCallsOptions = {
   eventRecords: EventRecord[];
 };
 
-export function handleCalls(options: HandleCallsOptions): Result<Event> {
+export async function handleCalls(options: HandleCallsOptions): Promise<Result<Event>> {
   const {
+    api,
     filter,
     metadata,
     registry,
@@ -259,7 +267,8 @@ export function handleCalls(options: HandleCallsOptions): Result<Event> {
     
     try {
       if (extrinsicSucceeded(eventRecords, i)) {
-        result.merge(handleCall({
+        result.merge(await handleCall({
+          api,
           filter,
           metadata,
           registry,

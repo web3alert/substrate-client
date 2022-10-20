@@ -425,8 +425,8 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     return {
       spec: spec.currency(),
       parse: {
-        raw: value => parser.parseCurrency(value.toJSON()),
-        human: value => parser.parseCurrency(value.toJSON()),
+        raw: async value => parser.parseCurrency(value.toJSON()),
+        human: async value => parser.parseCurrency(value.toJSON()),
       },
     };
   }),
