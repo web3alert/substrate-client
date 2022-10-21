@@ -225,12 +225,12 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
   },
 };
 
-type PrimitiveMapperBinding = {
+export type PrimitiveMapperBinding = {
   keys: string[];
   mapper: Mapper;
 };
 
-function bind(
+export function bind(
   keys: string[],
   mapper: Mapper,
 ): PrimitiveMapperBinding {
@@ -495,7 +495,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   }),
 ];
 
-function buildIndex(
+export function buildIndex(
   bindings: PrimitiveMapperBinding[],
 ): PartialRecord<string, Mapper> {
   const index: PartialRecord<string, Mapper> = {};
