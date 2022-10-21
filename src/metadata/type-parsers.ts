@@ -33,7 +33,7 @@ export type ParserContext = {
 
 export type Parser<T extends Json = Json> =  (value: Codec, ctx: ParserContext) => Promise<T>;
 
-function isPlainCurrency(currency: spec.BalanceCurrency): currency is spec.BalancyCurrencyPlain {
+export function isPlainCurrency(currency: spec.BalanceCurrency): currency is spec.BalancyCurrencyPlain {
   return 'plain' in currency;
 };
 
