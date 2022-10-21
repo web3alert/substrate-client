@@ -218,6 +218,25 @@ export function moment(): Parser<Json> {
   }
 }
 
+export function account(): Parser<Json> {
+  return async (value, ctx) => {
+    const accountInfo = await ctx.api.derive.accounts.info(value.toString())
+    let resultName = "";
+    if (accountInfo.identity.displayParent || accountInfo.identity.display) {
+      if (accountInfo.identity.displayParent) {
+        resultName += accountInfo.identity.displayParent + ":"
+      }
+      if (accountInfo.identity.display) {
+        resultName += accountInfo.identity.display
+      }
+    } else if (accountInfo.accountIndex) {
+      resultName = accountInfo.accountIndex.toString()
+    }
+    else resultName = value.toString()
+    return resultName;
+  }
+}
+
 export type FixedPointOptions = {
   decimals: number;
 };
@@ -312,7 +331,7 @@ export function balance(options?: BalanceOptions): Parser<number> {
 
   return async (value, ctx) => {
     const specAsBalance = ctx.spec as spec.Balance;
-    const raw = Number(parseRaw(value, ctx));
+    const raw = Number(await parseRaw(value, ctx));
 
     const currencyInfo = getCurrencyInfo(ctx, specAsBalance);
     if (currencyInfo) {
@@ -328,7 +347,7 @@ export function humanBalance(options?: BalanceOptions): Parser<Json> {
 
   return async (value, ctx) => {
     const specAsBalance = ctx.spec as spec.Balance;
-    const raw = Number(parseRaw(value, ctx));
+    const raw = Number(await parseRaw(value, ctx));
 
     const currencyInfo = getCurrencyInfo(ctx, specAsBalance);
     if (currencyInfo) {

@@ -465,7 +465,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
       spec: spec.address({ addressFormat: 'substrate', ss58Prefix: ctx.about.chain.ss58Prefix! }),
       parse: {
         raw: parser.string(),
-        human: parser.string(),
+        human: parser.account(),
       },
     };
   }),
@@ -477,7 +477,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
       spec: spec.address({ addressFormat: 'substrate', ss58Prefix: ctx.about.chain.ss58Prefix! }),
       parse: {
         raw: parser.string(),
-        human: parser.string(),
+        human: parser.account(),
       },
     };
   }),
@@ -489,7 +489,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
       spec: spec.address({ addressFormat: 'evm' }),
       parse: {
         raw: parser.string(),
-        human: parser.shortHash(),
+        human: parser.account(),
       },
     };
   }),
