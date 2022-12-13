@@ -25,6 +25,7 @@ export type Context = {
     get: Mapper;
   };
   lookup: ILookup;
+  lookupPathsWhitelist: string[];
 };
 
 export type Handler = {
@@ -131,15 +132,19 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
   [TypeDefInfo.Plain]: (ctx, source, path) => {
     return ctx.primitives.get(ctx, source, path);
   },
-  // [TypeDefInfo.Si]: (ctx, source, path) => {
-  //   const sub = { ...ctx.lookup.getTypeDef(source.lookupIndex!) };
-
-  //   if (source.typeName) {
-  //     sub.typeName = source.typeName;
-  //   }
-
-  //   return ctx.wrappers.get(ctx, sub, path);
-  // },
+  [TypeDefInfo.Si]: (ctx, source, path) => {
+    if (!ctx.lookupPathsWhitelist.some(item => path.startsWith(item))) {
+      return skip;
+    }
+    
+    const sub = { ...ctx.lookup.getTypeDef(source.lookupIndex!) };
+    
+    if (source.typeName) {
+      sub.typeName = source.typeName;
+    }
+    
+    return ctx.wrappers.get(ctx, sub, path);
+  },
   [TypeDefInfo.Struct]: (ctx, source, path) => {
     const subs = (source.sub! as TypeDef[]).map(item => ({ ...item }));
 

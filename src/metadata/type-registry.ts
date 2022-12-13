@@ -28,6 +28,7 @@ export type TypeRegistryOptions = {
   wrappers?: PartialRecord<TypeDefInfo, mapper.Mapper>;
   primitives?: PartialRecord<string, mapper.Mapper>;
   lookup: ILookup;
+  lookupPathsWhitelist?: string[];
 };
 
 export class TypeRegistry {
@@ -41,6 +42,7 @@ export class TypeRegistry {
       wrappers,
       primitives,
       lookup,
+      lookupPathsWhitelist,
     } = options;
     
     this.about = about;
@@ -61,6 +63,7 @@ export class TypeRegistry {
         get: mapper.primitive,
       },
       lookup,
+      lookupPathsWhitelist: lookupPathsWhitelist ?? [],
     };
   }
   
