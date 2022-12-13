@@ -15,6 +15,7 @@ export interface MetadataOptions {
   source: MetadataV14;
   filter: Filter;
   typeMappings?: TypeMappings;
+  lookupPathsWhitelist?: string[];
 }
 
 export class Metadata {
@@ -33,6 +34,7 @@ export class Metadata {
       source,
       filter,
       typeMappings,
+      lookupPathsWhitelist,
     } = options;
     
     const types = new TypeRegistry({
@@ -40,6 +42,7 @@ export class Metadata {
       wrappers: typeMappings?.wrappers,
       primitives: typeMappings?.primitives,
       lookup: source.lookup,
+      lookupPathsWhitelist,
     });
     
     const currencies = new CurrencyRegistry({

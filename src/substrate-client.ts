@@ -29,7 +29,9 @@ export type BlockPointer = {
   runtimeVersion: number;
 };
 
-export type SubstrateClientConfig = {};
+export type SubstrateClientConfig = {
+  lookupPathsWhitelist?: string[];
+};
 
 export type SubstrateClientOptions = {
   wsUrl: string;
@@ -155,6 +157,7 @@ export class SubstrateClient {
       source: pointer.apiAt.registry.metadata,
       filter: this.filter,
       typeMappings: this.typeMappings,
+      lookupPathsWhitelist: this.config?.lookupPathsWhitelist,
     });
   }
   
