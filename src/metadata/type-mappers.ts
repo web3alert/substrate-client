@@ -119,6 +119,15 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
       },
     };
   },
+  [TypeDefInfo.Null]: (ctx, source, path) => {
+    return {
+      spec: spec.nullish(),
+      parse: {
+        raw: parser.raw(),
+        human: parser.human(),
+      },
+    };
+  },
   [TypeDefInfo.Plain]: (ctx, source, path) => {
     return ctx.primitives.get(ctx, source, path);
   },

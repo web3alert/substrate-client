@@ -6,6 +6,10 @@ export type Skip = {
   type: 'skip';
 };
 
+export type Null = {
+  type: 'null';
+};
+
 export type Bool = {
   type: 'bool';
 };
@@ -74,6 +78,7 @@ export type Address =
 export type Primitive =
   | Unknown
   | Skip
+  | Null
   | Bool
   | Int
   | Bigint
@@ -128,6 +133,10 @@ export function unknown(): Unknown {
 
 export function skip(): Skip {
   return { type: 'skip' };
+}
+
+export function nullish(): Null {
+  return { type: 'null' };
 }
 
 export function bool(): Bool {
