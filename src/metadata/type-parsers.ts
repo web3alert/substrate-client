@@ -111,6 +111,30 @@ export function human(): Parser<Json> {
   return async value => value.toHuman();
 }
 
+export function unknownRaw(mainContext: Context, source: TypeDef, path: string): Parser<Json> {
+  var expandSource = source
+  if (source.type.includes('Lookup') && source.lookupIndex) {
+    expandSource = mainContext.lookup.getTypeDef(source.lookupIndex)
+  }
+  return async (value, ctx) => {
+    if (expandSource.type === 'Null') {
+      return null
+    }
+    let handler = mainContext.wrappers.get(mainContext, expandSource, path)
+    if (handler.spec.type == 'unknown') {
+      //console.log(`Warning: Type ${expandSource.type} has no parser.`)
+      return value.toJSON()
+    }
+    return handler.parse.raw(value, {
+      api: ctx.api,
+      currencies: ctx.currencies,
+      path: ctx.path,
+      spec: handler.spec,
+      rawArgs: ctx.rawArgs,
+    })
+  }
+}
+
 export function unknownHuman(mainContext: Context, source: TypeDef, path: string): Parser<Json> {
   var expandSource = source
   if (source.type.includes('Lookup') && source.lookupIndex) {
