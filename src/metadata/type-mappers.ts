@@ -55,7 +55,7 @@ const unknown: Mapper = (ctx, source, path) => {
   return {
     spec: spec.unknown(),
     parse: {
-      raw: parser.raw(),
+      raw: parser.unknownRaw(ctx, source, path),
       human: parser.unknownHuman(ctx, source, path),
     },
   }
@@ -134,7 +134,7 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
   },
   [TypeDefInfo.Si]: (ctx, source, path) => {
     if (!ctx.lookupPathsWhitelist.some(item => path.startsWith(item))) {
-      return skip;
+      return unknown(ctx, source, path);
     }
     
     const sub = { ...ctx.lookup.getTypeDef(source.lookupIndex!) };
