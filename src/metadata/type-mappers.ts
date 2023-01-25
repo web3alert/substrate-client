@@ -253,7 +253,7 @@ export function bind(
 
 const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   bind([
-    'ParaId', 'ValidationCode', 'HeadData', 'ValidationCodeHash', 'CandidateHash',
+    'ValidationCode', 'HeadData', 'ValidationCodeHash', 'CandidateHash',
   ], (ctx, source, path) => {
     return {
       spec: spec.skip(),
@@ -371,7 +371,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'u8', 'u16', 'u32'
+    'u8', 'u16', 'u32', 'ParaId'
   ], (ctx, source, path) => {
     return {
       spec: spec.int(),
