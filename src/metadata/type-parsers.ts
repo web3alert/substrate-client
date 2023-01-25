@@ -20,6 +20,7 @@ import type * as spec from './type-specs';
 import type { Junction, JunctionV0 } from '@polkadot/types/interfaces';
 import type { Context } from './type-mappers';
 import type { ApiPromise } from '@polkadot/api';
+import { formatBalance } from '../utils';
 
 type Lookup = { match: string; replace: string };
 
@@ -31,7 +32,7 @@ export type ParserContext = {
   rawArgs: Object;
 };
 
-export type Parser<T extends Json = Json> =  (value: Codec, ctx: ParserContext) => Promise<T>;
+export type Parser<T extends Json = Json> = (value: Codec, ctx: ParserContext) => Promise<T>;
 
 export function isPlainCurrency(currency: spec.BalanceCurrency): currency is spec.BalancyCurrencyPlain {
   return 'plain' in currency;
@@ -174,7 +175,7 @@ export function call(mainContext: Context, source: TypeDef, path: string): Parse
       args[argName] = await handler.parse.human(argEntry[1], {
         api: ctx.api,
         currencies: ctx.currencies,
-        path: [...ctx.path,argName],
+        path: [...ctx.path, argName],
         rawArgs: ctx.rawArgs,
         spec: handler.spec
       });
@@ -199,7 +200,7 @@ export function bigint(): Parser<number> {
   return async value => Number((value as Int).toBigInt());
 }
 
-function makeHashShorter(hash:string):string {
+function makeHashShorter(hash: string): string {
   if (hash.length > 12) {
     return hash.substring(0, 7) + '...' + hash.substring(hash.length - 5, hash.length)
   }
@@ -216,7 +217,7 @@ export function shortHash(): Parser<Json> {
 export function bytes(): Parser<Json> {
   return async value => {
     let result = value.toHuman()?.toString()
-    if(result && result.startsWith('0x')){
+    if (result && result.startsWith('0x')) {
       return makeHashShorter(result)
     }
     return result;
@@ -375,30 +376,7 @@ export function humanBalance(options?: BalanceOptions): Parser<Json> {
 
     const currencyInfo = getCurrencyInfo(ctx, specAsBalance);
     if (currencyInfo) {
-      const rawBalance = (raw / Math.pow(10, currencyInfo.decimals));
-
-      let formatBalance = "";
-      let stringBalance = rawBalance.toString()
-      if (stringBalance.includes('e')) {
-        stringBalance = rawBalance.toFixed(currencyInfo.decimals)
-      }
-      const splited = stringBalance.split('.');
-      if (splited.length == 2 && splited[1].length > 4) {
-        const firstNotZero = [...splited[1]].findIndex(char => char != '0')
-        if (firstNotZero < 4) {
-          formatBalance = rawBalance.toFixed(4);
-        }
-        else if (firstNotZero > currencyInfo.decimals - 4) {
-          formatBalance = rawBalance.toFixed(currencyInfo.decimals)
-        }
-        else formatBalance = rawBalance.toFixed(firstNotZero + 1)
-      } else {
-        formatBalance = rawBalance.toString();
-      }
-
-      let result = formatBalance + ' ' + currencyInfo.symbol;
-
-      return result;
+      return formatBalance(raw, currencyInfo.decimals, currencyInfo.symbol);
     }
 
     return raw;
@@ -492,7 +470,7 @@ export function enumObject(options: EnumObjectOptions): Parser<Object> {
     const result: Object = {};
     const key = asEnum.type;
     result[key] = await propParsers[key](asEnum.value, {
-      api:ctx.api,
+      api: ctx.api,
       currencies: ctx.currencies,
       path: [...ctx.path, key],
       spec: specAsObject.props[key],
