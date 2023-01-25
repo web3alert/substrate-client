@@ -37,6 +37,9 @@ export type Parser<T extends Json = Json> = (value: Codec, ctx: ParserContext) =
 export function isPlainCurrency(currency: spec.BalanceCurrency): currency is spec.BalancyCurrencyPlain {
   return 'plain' in currency;
 };
+export function isIndexCurrency(currency: spec.BalanceCurrency): currency is spec.BalancyCurrencyIndex {
+  return 'index' in currency;
+};
 
 
 function getLookupSymbol(ctx: ParserContext, lookup?: Lookup): string | undefined {
@@ -70,6 +73,8 @@ function getCurrencyInfo(ctx: ParserContext, spec: spec.Balance): CurrencyInfo |
     const symbol = spec.currency.plain;
 
     return ctx.currencies.get(symbol);
+  } else if(isIndexCurrency(spec.currency)){
+    return undefined;
   } else {
     const symbol = getLookupSymbol(ctx, spec.currency.lookup);
     const symbol2 = getLookupSymbol(ctx, spec.currency.lookup2);

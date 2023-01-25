@@ -26,6 +26,10 @@ export type BalancyCurrencyPlain = {
   plain: string;
 };
 
+export type BalancyCurrencyIndex = {
+  index: number;
+};
+
 export type BalanceCurrencyLookup = {
   lookup: {
     match: string;
@@ -40,6 +44,7 @@ export type BalanceCurrencyLookup = {
 export type BalanceCurrency =
   | BalancyCurrencyPlain
   | BalanceCurrencyLookup
+  | BalancyCurrencyIndex
 ;
 
 export type Balance = {
