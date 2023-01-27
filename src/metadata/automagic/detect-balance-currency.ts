@@ -56,18 +56,6 @@ function asParallelArrays(specs: spec.NamedSpec[]): void {
   };
 }
 
-function asOneToOne(specs: spec.NamedSpec[]): void {
-  const balanceArg = specs.find(item => isBalance(item.spec))!;
-  const balanceArgSpec = balanceArg.spec as spec.Balance;
-  const currencyArg = specs.find(item => isCurrency(item.spec))!;
-  balanceArgSpec.currency = {
-    lookup: {
-      match: '^.*$',
-      replace: currencyArg.name,
-    },
-  };
-}
-
 function asManyToOne(specs: spec.NamedSpec[]): void {
   const balanceArgs = specs.filter(item => isBalance(item.spec));
   const currencyArg = specs.find(item => isCurrency(item.spec))!;
@@ -79,6 +67,22 @@ function asManyToOne(specs: spec.NamedSpec[]): void {
       lookup: {
         match: '^.*$',
         replace: currencyArg.name,
+      },
+    };
+  }
+}
+
+function asManyToMany(specs: spec.NamedSpec[]): void {
+  const balanceArgs = specs.filter(item => isBalance(item.spec));
+  const currencyArgs = specs.filter(item => isCurrency(item.spec));
+  const count = balanceArgs.length;
+  for (let i = 0; i < count; i++) {
+    const balanceArg = balanceArgs[i];
+    const balanceArgSpec = balanceArg.spec as spec.Balance;
+    balanceArgSpec.currency = {
+      lookup: {
+        match: '^.*$',
+        replace: currencyArgs[i].name,
       },
     };
   }
@@ -126,8 +130,8 @@ export function detectBalanceCurrency(ctx: AutomagicContext, specs: spec.NamedSp
 
   if (arrayOfBalancesArgsCount == 1 && arrayOfCurrenciesArgsCount == 1) {
     asParallelArrays(specs);
-  } else if (balanceArgsCount == 1 && currencyArgsCount == 1) {
-    asOneToOne(specs);
+  } else if (balanceArgsCount > 0 && currencyArgsCount > 0 && balanceArgsCount == currencyArgsCount) {
+    asManyToMany(specs);
   } else if (balanceArgsCount == tupleOfTwoCurrenciesArgsCount) {
     asCommonSetWithTuplesOfTwoCurrencies(specs);
   } else if (balanceArgsCount > 1 && currencyArgsCount == 1) {
