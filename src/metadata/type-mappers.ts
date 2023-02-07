@@ -497,7 +497,7 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   }),
   // TODO: check for MultiAddress compatibility
   bind([
-    'AccountId20', /* 'EthereumAddress', */
+    'AccountId20', 'H160' /* 'EthereumAddress', */
   ], (ctx, source, path) => {
     return {
       spec: spec.address({ addressFormat: 'evm' }),
