@@ -10,6 +10,7 @@ import type {
   GenericCall
 } from '@polkadot/types';
 import type { Codec, TypeDef } from '@polkadot/types/types';
+import type { LookupString } from '@polkadot/types-codec/types';
 import type {
   Json,
   Object,
@@ -174,7 +175,7 @@ export function call(mainContext: Context, source: TypeDef, path: string): Parse
     for (let i = 0; i < callValue.args.length; i++) {
       const argEntry = callValue.argsEntries[i]
       const argName = argEntry[0];
-      const argType = callValue.argsDef[argName].toString()
+      const argType = callValue.argsDef[argName].toString() as LookupString;
       const argSource = mainContext.lookup.getTypeDef(argType)
       const handler = mainContext.wrappers.get(mainContext, argSource, `${path}.${argName}`);
       args[argName] = await handler.parse.human(argEntry[1], {
