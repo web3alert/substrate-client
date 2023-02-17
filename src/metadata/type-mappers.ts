@@ -1,6 +1,7 @@
 import { TypeDefInfo } from '@polkadot/types';
 import type { TypeDef } from '@polkadot/types/types';
 import type { ILookup } from '@polkadot/types-create/types';
+import type { LookupString } from '@polkadot/types-codec/types';
 import type {
   PartialRecord,
   About,
@@ -277,10 +278,16 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   bind([
     'MultiLocation',
   ], (ctx, source, path) => {
-    let real_source = source
-    if (source.type.includes('Lookup') && source.lookupIndex) {
-      real_source = ctx.lookup.getTypeDef(source.lookupIndex)
+    let real_source = source;
+
+    if (source.info == TypeDefInfo.Si) {
+      real_source = ctx.lookup.getTypeDef(source.lookupIndex!);
+
+      if (real_source == source) {
+        real_source = ctx.lookup.getTypeDef(source.type as LookupString);
+      }
     }
+
     if (source.lookupName == 'XcmV0MultiLocation') {
       const subs = (real_source.sub! as TypeDef[]).map(item => ({ ...item }));
 
