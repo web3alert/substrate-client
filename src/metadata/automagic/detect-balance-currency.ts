@@ -3,13 +3,13 @@ import type { AutomagicContext } from './types';
 
 type IsPredicate = (spec: spec.Spec) => boolean;
 
-function isType(type: string): IsPredicate {
-  return spec => spec.type == type;
+function isType(types: string[]): IsPredicate {
+  return spec => types.find(t => t == spec.type) != undefined;
 }
 
-const isBalance = isType('balance');
-const isCurrency = isType('currency' || 'currency_pair');
-const isObjectSpec = isType('object');
+const isBalance = isType(['balance']);
+const isCurrency = isType(['currency','currency_pair'])
+const isObjectSpec = isType(['object']);
 
 function isArrayOfType(type: string): IsPredicate {
   return spec => spec.type == 'array' && spec.items.type == type;
