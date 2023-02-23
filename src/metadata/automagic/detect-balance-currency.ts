@@ -8,7 +8,7 @@ function isType(type: string): IsPredicate {
 }
 
 const isBalance = isType('balance');
-const isCurrency = isType('currency');
+const isCurrency = isType('currency' || 'currency_pair');
 const isObjectSpec = isType('object');
 
 function isArrayOfType(type: string): IsPredicate {

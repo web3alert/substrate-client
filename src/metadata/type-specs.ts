@@ -100,6 +100,11 @@ export type Map = {
   values: Spec;
 };
 
+export type CurrencyPair = {
+    type: 'currency_pair';
+    props: Record<string, Spec>;
+};
+
 export type Object = {
   type: 'object';
   props: Record<string, Spec>;
@@ -118,6 +123,7 @@ export type Tuple = {
 export type Wrapper =
   | Map
   | Object
+  | CurrencyPair
   | Array
   | Tuple
 ;
@@ -194,6 +200,10 @@ export type MapOptions = {
 
 export function map(options: MapOptions): Map {
   return { type: 'map', ...options };
+};
+
+export function currency_pair(options: ObjectOptions): CurrencyPair {
+  return { type: 'currency_pair', ...options };
 };
 
 export type ObjectOptions = {
