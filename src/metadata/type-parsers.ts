@@ -88,28 +88,6 @@ function getCurrencyInfo(ctx: ParserContext, spec: spec.Balance): CurrencyInfo |
   return undefined;
 }
 
-export function parseCurrency(raw: Json): Json {
-  if (typeof raw == 'object' && raw != null) {
-    const tryPaths = [
-      'token',
-      'vToken',
-      'stable',
-      'vsToken',
-      //'vsBond.0',
-    ];
-
-    for (const tryPath of tryPaths) {
-      const value = _.get(raw, tryPath);
-
-      if (typeof value == 'string') {
-        return value;
-      }
-    }
-  }
-
-  return raw;
-}
-
 export function raw(): Parser<Json> {
   return async value => value.toJSON();
 }
@@ -387,6 +365,40 @@ export function humanBalance(options?: BalanceOptions): Parser<Json> {
 
     return raw;
   };
+}
+
+export function parseCurrency(raw: Json): Json {
+  if (typeof raw == 'object' && raw != null) {
+    const tryPaths = [
+      'token',
+      'vToken',
+      'stable',
+      'vsToken',
+      //'vsBond.0',
+    ];
+
+    for (const tryPath of tryPaths) {
+      const value = _.get(raw, tryPath);
+
+      if (typeof value == 'string') {
+        return value;
+      }
+    }
+  }
+
+  return raw;
+}
+
+export function currency(): Parser<Json> {
+  return async (value, ctx) => {
+    const currency_id = value.toJSON() as any
+    if(currency_id && currency_id.foreignAsset){
+      const assetChainInfo = await (ctx.api.query as any).assetRegistry.metadata(currency_id.foreignAsset)
+      const assetInfo = assetChainInfo.toHuman()
+      return assetInfo.symbol
+    }
+    else return parseCurrency(currency_id)
+  }
 }
 
 export function string(): Parser<string> {
