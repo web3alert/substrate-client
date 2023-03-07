@@ -28,6 +28,7 @@ type Lookup = { match: string; replace: string };
 export type ParserContext = {
   api: ApiPromise;
   currencies: CurrencyRegistry;
+  parent: string,
   path: string[];
   spec: spec.Spec;
   rawArgs: Object;
@@ -113,6 +114,7 @@ export function unknownRaw(mainContext: Context, source: TypeDef, path: string):
     return handler.parse.raw(value, {
       api: ctx.api,
       currencies: ctx.currencies,
+      parent: ctx.parent,
       path: ctx.path,
       spec: handler.spec,
       rawArgs: ctx.rawArgs,
@@ -137,6 +139,7 @@ export function unknownHuman(mainContext: Context, source: TypeDef, path: string
     return handler.parse.human(value, {
       api: ctx.api,
       currencies: ctx.currencies,
+      parent: ctx.parent,
       path: ctx.path,
       spec: handler.spec,
       rawArgs: ctx.rawArgs,
@@ -159,6 +162,7 @@ export function call(mainContext: Context, source: TypeDef, path: string): Parse
       args[argName] = await handler.parse.human(argEntry[1], {
         api: ctx.api,
         currencies: ctx.currencies,
+        parent: ctx.parent,
         path: [...ctx.path, argName],
         rawArgs: ctx.rawArgs,
         spec: handler.spec
@@ -425,6 +429,7 @@ export function map(options: MapOptions): Parser<Record<string | number, Json>> 
       const keyDecoded = await keysParser(key, {
         api: ctx.api,
         currencies: ctx.currencies,
+        parent: ctx.parent,
         path: ctx.path,
         spec: specAsMap.keys,
         rawArgs: ctx.rawArgs,
@@ -433,6 +438,7 @@ export function map(options: MapOptions): Parser<Record<string | number, Json>> 
       result[keyDecoded] = await valuesParser(value, {
         api: ctx.api,
         currencies: ctx.currencies,
+        parent: ctx.parent,
         path: [...ctx.path, '' + keyDecoded],
         spec: specAsMap.values,
         rawArgs: ctx.rawArgs,
@@ -462,6 +468,7 @@ export function object(options: ObjectOptions): Parser<Record<string, Json>> {
       result[key] = await propParsers[key](asStruct.get(key)!, {
         api: ctx.api,
         currencies: ctx.currencies,
+        parent: ctx.parent,
         path: [...ctx.path, key],
         spec: specAsObject.props[key],
         rawArgs: ctx.rawArgs,
@@ -490,6 +497,7 @@ export function enumObject(options: EnumObjectOptions): Parser<Object> {
     result[key] = await propParsers[key](asEnum.value, {
       api: ctx.api,
       currencies: ctx.currencies,
+      parent: ctx.parent,
       path: [...ctx.path, key],
       spec: specAsObject.props[key],
       rawArgs: ctx.rawArgs,
@@ -513,6 +521,7 @@ export function humanEnumObject(options: EnumObjectOptions): Parser<Json> {
     result[key] = await propParsers[key](asEnum.value, {
       api: ctx.api,
       currencies: ctx.currencies,
+      parent: ctx.parent,
       path: [...ctx.path, key],
       spec: specAsObject.props[key],
       rawArgs: ctx.rawArgs,
@@ -543,6 +552,7 @@ export function array<T extends Json = Json>(options: ArrayOptions<T>): Parser<T
       return parseItem(item, {
         api: ctx.api,
         currencies: ctx.currencies,
+        parent: ctx.parent,
         path: [...ctx.path, '' + index],
         spec: specAsArray.items,
         rawArgs: ctx.rawArgs,
@@ -564,6 +574,7 @@ export function humanArray<T extends Json = Json>(options: ArrayOptions<T>): Par
       return await parseItem(item, {
         api: ctx.api,
         currencies: ctx.currencies,
+        parent: ctx.parent,
         path: [...ctx.path, '' + index],
         spec: specAsArray.items,
         rawArgs: ctx.rawArgs,
@@ -615,6 +626,7 @@ export function tuple(options: TupleOptions): Parser<Json[]> {
       return await parseItem(item, {
         api: ctx.api,
         currencies: ctx.currencies,
+        parent: ctx.parent,
         path: [...ctx.path, '' + index],
         spec: specAsTuple.items[index],
         rawArgs: ctx.rawArgs,

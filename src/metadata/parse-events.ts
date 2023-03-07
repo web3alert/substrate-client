@@ -26,7 +26,7 @@ const TRY_RE_DOCS_ARGS = [
 ];
 
 function parseDocs(docs: string): ParsedDocs {
-  const trimmed = docs.trim();
+  const trimmed = docs.replaceAll('\n','').trim();
   const argNames: string[] = [];
   
   let matches: RegExpMatchArray[] = [];
