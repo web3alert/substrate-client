@@ -18,11 +18,15 @@ type ParsedDocs = {
 const RE_DOCS_ARGS = /\\\[(.+?)\\\]/g;
 const RE_DOCS_ARGS_2 = /\`\[(.+?)\]\`/g;
 const RE_DOCS_ARGS_3 = /\`(.+?)\`/g;
+const RE_DOCS_ARGS_4 = /\\\[(.+?)\]/g
+const RE_DOCS_ARGS_5 = /\[(.+?)\]/g
 
 const TRY_RE_DOCS_ARGS = [
   RE_DOCS_ARGS,
   RE_DOCS_ARGS_2,
   RE_DOCS_ARGS_3,
+  RE_DOCS_ARGS_4,
+  RE_DOCS_ARGS_5
 ];
 
 function parseDocs(docs: string): ParsedDocs {
@@ -82,7 +86,7 @@ export function parseEvents(
       if (!filter.match(name.full)) {
         continue;
       }
-      
+
       const rawDocs = variant.docs.join('\n');
       const parsedDocs = parseDocs(rawDocs);
       

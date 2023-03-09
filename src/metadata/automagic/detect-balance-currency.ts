@@ -17,6 +17,7 @@ function isArrayOfType(type: string): IsPredicate {
 
 const isArrayOfBalances = isArrayOfType('balance');
 const isArrayOfCurrencies = isArrayOfType('currency');
+const isArrayOfTuple = isArrayOfType('tuple')
 
 function isTupleOfTwo(type: string): IsPredicate {
   return spec => spec.type == 'tuple'
@@ -26,7 +27,22 @@ function isTupleOfTwo(type: string): IsPredicate {
     ;
 }
 
+function isTupleOfPair(first:string, second:string): IsPredicate {
+  return spec => spec.type == 'tuple'
+    && spec.items.length == 2
+    && spec.items[0].type == first
+    && spec.items[1].type == second
+}
+function isArrayOfTupleOfPair(first:string, second:string): IsPredicate {
+  return spec => spec.type == 'array'
+    && spec.items.type == 'tuple'
+    && spec.items.items[0].type == first
+    && spec.items.items[1].type == second
+}
+
 const isTupleOfTwoCurrencies = isTupleOfTwo('currency');
+const isTupleOfPairBalanceCurrency = isTupleOfPair('currency', 'balance')
+const isArrayOfTupleOfPairBalanceCurrency = isArrayOfTupleOfPair('currency', 'balance')
 
 function countArgs(specs: spec.NamedSpec[], is: IsPredicate): number {
   let count = 0;
@@ -121,12 +137,44 @@ function asDefault(ctx: AutomagicContext, specs: spec.NamedSpec[]): void {
   }
 }
 
+function asTupleOfPair(ctx: AutomagicContext, specs: spec.NamedSpec[]): void {
+  const tupleOfPairs = specs.filter(item => isTupleOfPairBalanceCurrency(item.spec));
+  for (let i = 0; i < tupleOfPairs.length; i++) {
+    const namedTuple = tupleOfPairs[i]
+    const tuple = namedTuple.spec as spec.Tuple
+    const asBalance = tuple.items[1] as spec.Balance
+    asBalance.currency = {
+      lookup: {
+        match: '^.*$',
+        replace: `${namedTuple.name}.0`,
+      },
+    };
+  }
+}
+
+function asArrayOfTupleOfPair(ctx: AutomagicContext, specs: spec.NamedSpec[]): void {
+  const arrayOfTupleArgs = specs.filter(item => isArrayOfTupleOfPairBalanceCurrency(item.spec))!;
+  for (let i = 0; i < arrayOfTupleArgs.length; i++) {
+    const arrayOfTuple = arrayOfTupleArgs[i]
+    const tuple = (arrayOfTuple.spec as spec.Array).items as spec.Tuple
+    const asBalance = tuple.items[1] as spec.Balance
+    asBalance.currency = {
+      lookup: {
+        match: `^(${arrayOfTuple.name}\.\(?<index>[0-9]+)\.)(1)$`,
+        replace: `${arrayOfTuple.name}.$<index>.0`,
+      },
+    }
+  }
+}
+
 export function detectBalanceCurrency(ctx: AutomagicContext, specs: spec.NamedSpec[]): void {
   const balanceArgsCount = countArgs(specs, isBalance);
   const currencyArgsCount = countArgs(specs, isCurrency);
   const arrayOfBalancesArgsCount = countArgs(specs, isArrayOfBalances);
   const arrayOfCurrenciesArgsCount = countArgs(specs, isArrayOfCurrencies);
   const tupleOfTwoCurrenciesArgsCount = countArgs(specs, isTupleOfTwoCurrencies);
+  const tupleOfPairBalanceCurrency = countArgs(specs, isTupleOfPairBalanceCurrency);
+  const arrayOfTupleOfPair = countArgs(specs, isArrayOfTupleOfPairBalanceCurrency);
 
   if (arrayOfBalancesArgsCount == 1 && arrayOfCurrenciesArgsCount == 1) {
     asParallelArrays(specs);
@@ -140,6 +188,12 @@ export function detectBalanceCurrency(ctx: AutomagicContext, specs: spec.NamedSp
     asDefault(ctx, specs);
   }
 
+  if(tupleOfPairBalanceCurrency > 0){
+    asTupleOfPair(ctx, specs)
+  }
+  if(arrayOfTupleOfPair > 0){
+    asArrayOfTupleOfPair(ctx, specs)
+  }
 
   specs.filter(spec => isObjectSpec(spec.spec)).forEach(spec => {
     const objectSpec = spec.spec as spec.Object
