@@ -396,12 +396,12 @@ export function parseCurrency(raw: Json): Json {
 export function currency(): Parser<Json> {
   return async (value, ctx) => {
     const currency_id = value.toJSON() as any
-    if(currency_id && currency_id.foreignAsset){
-      const assetChainInfo = await (ctx.api.query as any).assetRegistry.metadata(currency_id.foreignAsset)
-      const assetInfo = assetChainInfo.toHuman()
-      return assetInfo.symbol
-    }
-    else return parseCurrency(currency_id)
+    // if(currency_id && currency_id.foreignAsset){
+    //   const assetChainInfo = await (ctx.api.query as any).assetRegistry.metadata(currency_id.foreignAsset)
+    //   const assetInfo = assetChainInfo.toHuman()
+    //   return assetInfo.symbol
+    // }
+    return parseCurrency(currency_id)
   }
 }
 
