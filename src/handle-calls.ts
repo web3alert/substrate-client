@@ -38,6 +38,7 @@ type CallWrapper = {
 const BATCH_CALLS: string[] = [
   'utility.batch',
   'utility.batch-all',
+  'utility.force-batch'
 ];
 
 const MULTISIG_AS_MULTI_CALL: string = 'multisig.as-multi';
@@ -85,6 +86,30 @@ function extrinsicSucceeded(eventRecords: EventRecord[], extrinsicIndex: number)
   }
   
   return (successEventFound == 1);
+}
+
+function isInterrupted(eventRecords: EventRecord[], extrinsicIndex: number): boolean {
+  let interruptedEventFound = 0;
+  
+  for (const eventRecord of eventRecords) {
+    const { event, index } = eventRecord;
+    
+    if (index != null && index == extrinsicIndex) {
+      const eventName = buildEventName({
+        kind: 'event',
+        module: event.section,
+        event: event.method,
+      });
+      
+      if (eventName.short == 'utility.batch-interrupted' ||
+      eventName.short == 'utility.batch-completed-with-errors' ||
+      eventName.short == 'utility.item-failed') {
+        interruptedEventFound++;
+      }
+    }
+  }
+  
+  return (interruptedEventFound > 0);
 }
 
 function castCallArgByName<T extends Codec>(
@@ -266,7 +291,7 @@ export async function handleCalls(options: HandleCallsOptions): Promise<Result<E
     const extrinsic = block.extrinsics[i];
     
     try {
-      if (extrinsicSucceeded(eventRecords, i)) {
+      if (extrinsicSucceeded(eventRecords, i) && !isInterrupted(eventRecords, i)) {
         result.merge(await handleCall({
           api,
           filter,
