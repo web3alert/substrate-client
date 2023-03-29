@@ -3,6 +3,7 @@ import type { RegistryTypes } from '@polkadot/types/types';
 import {
   WsProvider,
   ApiPromise,
+  HttpProvider
 } from '@polkadot/api';
 import type { ApiDecoration } from '@polkadot/api/types';
 import type {
@@ -46,6 +47,7 @@ export type SubstrateClientOptions = {
 
 export class SubstrateClient {
   public wsUrl: string;
+  private isHttps: boolean;
   public customClientTypes?: RegistryTypes;
   public config?: SubstrateClientConfig;
   public defaultAddressFormat: AddressFormat;
@@ -65,6 +67,7 @@ export class SubstrateClient {
     } = options;
     
     this.wsUrl = wsUrl;
+    this.isHttps = wsUrl.startsWith('https')
     this.customClientTypes = customClientTypes;
     this.config = config;
     this.defaultAddressFormat = defaultAddressFormat ?? 'substrate';
@@ -75,10 +78,18 @@ export class SubstrateClient {
   }
   
   public async connect(): Promise<void> {
-    this.api = await ApiPromise.create({
-      provider: new WsProvider(this.wsUrl),
-      types: this.customClientTypes,
-    });
+    if(!this.isHttps){
+      this.api = await ApiPromise.create({
+        provider: new WsProvider(this.wsUrl),
+        types: this.customClientTypes,
+      });
+    }
+    else if(this.isHttps){
+      this.api = await ApiPromise.create({
+        provider: new HttpProvider(this.wsUrl),
+        types: this.customClientTypes,
+      })
+    }
     
     try {
       const currentBlockNumber = await this.currentBlockNumber();
@@ -86,14 +97,18 @@ export class SubstrateClient {
       
       await this.updateCurrentMetadata(pointer);
     } catch (err) {
-      await this.api.disconnect();
+      if(!this.isHttps){
+        await this.api.disconnect();
+      }
       
       throw err;
     }
   }
   
   public async close(): Promise<void> {
-    await this.api.disconnect();
+    if(!this.isHttps){
+      await this.api.disconnect();
+    }
   }
   
   public async currentBlockNumber(): Promise<number> {

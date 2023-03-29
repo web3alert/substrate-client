@@ -71,7 +71,7 @@ const skip: Handler = {
 };
 
 export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
-  // [TypeDefInfo.BTreeMap]:(ctx, source, path) => {
+  // [TypeDefInfo.BTreeMap]: (ctx, source, path) => {
   //   const subs = (source.sub! as TypeDef[]).map(item => ({ ...item }));
 
   //   const keys = ctx.wrappers.get(ctx, subs[0], `${path}(key)`);
@@ -82,10 +82,17 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
   //       keys: keys.spec as spec.String | spec.Int,
   //       values: values.spec,
   //     }),
-  //     parse: parser.map({
-  //       keysParser: keys.parse as parser.Parser<string | number>,
-  //       valuesParser: values.parse,
-  //     }),
+  //     parse: {
+  //       raw: parser.map({
+  //         keysParser: keys.parse.raw as parser.Parser<string | number>,
+  //         valuesParser: values.parse.raw,
+  //       }),
+  //       human: parser.map({
+  //         keysParser: keys.parse.human as parser.Parser<string | number>,
+  //         valuesParser: values.parse.human,
+  //       })
+  //     }
+  //     ,
   //   };
   // },
   [TypeDefInfo.Compact]: (ctx, source, path) => {
@@ -137,13 +144,13 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
     if (!ctx.lookupPathsWhitelist.some(item => path.startsWith(item))) {
       return unknown(ctx, source, path);
     }
-    
+
     const sub = { ...ctx.lookup.getTypeDef(source.lookupIndex!) };
-    
+
     if (source.typeName) {
       sub.typeName = source.typeName;
     }
-    
+
     return ctx.wrappers.get(ctx, sub, path);
   },
   [TypeDefInfo.Struct]: (ctx, source, path) => {

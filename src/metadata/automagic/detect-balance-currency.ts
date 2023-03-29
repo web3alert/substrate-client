@@ -81,7 +81,7 @@ function asManyToOne(specs: spec.NamedSpec[]): void {
     const balanceArgSpec = balanceArg.spec as spec.Balance;
     balanceArgSpec.currency = {
       lookup: {
-        match: '^.*$',
+        match: '[^.]+$',
         replace: currencyArg.name,
       },
     };
@@ -97,7 +97,7 @@ function asManyToMany(specs: spec.NamedSpec[]): void {
     const balanceArgSpec = balanceArg.spec as spec.Balance;
     balanceArgSpec.currency = {
       lookup: {
-        match: '^.*$',
+        match: '[^.]+$',
         replace: currencyArgs[i].name,
       },
     };
@@ -116,11 +116,11 @@ function asCommonSetWithTuplesOfTwoCurrencies(specs: spec.NamedSpec[]): void {
     const asBalance = balance.spec as spec.Balance;
     asBalance.currency = {
       lookup: {
-        match: '^.*$',
+        match: '[^.]+$',
         replace: `${tuple.name}.0`,
       },
       lookup2: {
-        match: '^.*$',
+        match: '[^.]+$',
         replace: `${tuple.name}.1`,
       },
     };
@@ -145,7 +145,7 @@ function asTupleOfPair(ctx: AutomagicContext, specs: spec.NamedSpec[]): void {
     const asBalance = tuple.items[1] as spec.Balance
     asBalance.currency = {
       lookup: {
-        match: '^.*$',
+        match: '[^.]+$',
         replace: `${namedTuple.name}.0`,
       },
     };
