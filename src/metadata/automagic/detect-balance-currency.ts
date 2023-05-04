@@ -132,7 +132,9 @@ function asDefault(ctx: AutomagicContext, specs: spec.NamedSpec[]): void {
     if (isBalance(arg.spec)) {
       const asBalance = arg.spec as spec.Balance;
 
-      asBalance.currency = { plain: ctx.about.chain.tokens[0] };
+      if(!asBalance.currency){
+        asBalance.currency = { plain: ctx.about.chain.tokens[0] };
+      }
     }
   }
 }
