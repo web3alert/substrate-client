@@ -233,20 +233,24 @@ export function moment(): Parser<Json> {
 
 export function account(): Parser<Json> {
   return async (value, ctx) => {
-    const accountInfo = await ctx.api.derive.accounts.info(value.toString())
-    let resultName = "";
-    if (accountInfo.identity.displayParent || accountInfo.identity.display) {
-      if (accountInfo.identity.displayParent) {
-        resultName += accountInfo.identity.displayParent + ":"
-      }
-      if (accountInfo.identity.display) {
-        resultName += accountInfo.identity.display
-      }
-    } else if (accountInfo.accountIndex) {
-      resultName = accountInfo.accountIndex.toString()
-    }
-    else resultName = value.toString()
-    return resultName;
+    // disabled because of performance issues
+    // 
+    // const accountInfo = await ctx.api.derive.accounts.info(value.toString())
+    // let resultName = "";
+    // if (accountInfo.identity.displayParent || accountInfo.identity.display) {
+    //   if (accountInfo.identity.displayParent) {
+    //     resultName += accountInfo.identity.displayParent + ":"
+    //   }
+    //   if (accountInfo.identity.display) {
+    //     resultName += accountInfo.identity.display
+    //   }
+    // } else if (accountInfo.accountIndex) {
+    //   resultName = accountInfo.accountIndex.toString()
+    // }
+    // else resultName = value.toString()
+    // return resultName;
+    
+    return value.toString();
   }
 }
 
