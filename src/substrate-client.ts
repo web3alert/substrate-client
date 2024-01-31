@@ -67,7 +67,7 @@ export class SubstrateClient {
     } = options;
     
     this.wsUrl = wsUrl;
-    this.isHttps = wsUrl.startsWith('https')
+    this.isHttps = wsUrl.startsWith('http') || wsUrl.startsWith('https');
     this.customClientTypes = customClientTypes;
     this.config = config;
     this.defaultAddressFormat = defaultAddressFormat ?? 'substrate';
