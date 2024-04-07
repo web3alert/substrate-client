@@ -1,4 +1,4 @@
-import _, { range } from 'lodash';
+import _ from 'lodash';
 import type {
   Int,
   BTreeMap,
@@ -293,7 +293,7 @@ export function junctions(): Parser<Json> {
 }
 
 function checkJunctionIndex(junctions: any): number {
-  return range(1, 8).find(index => junctions[`isX${index}`]) ?? 0
+  return _.range(1, 8).find(index => junctions[`isX${index}`]) ?? 0
 }
 
 function parseJunction(junction: Junction | JunctionV0): Json {

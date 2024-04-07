@@ -4,23 +4,17 @@
     "declaration": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": [
-      "es2022"
-    ],
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "lib": ["es2022", "dom"],
+    "module": "es2022",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
     "newLine": "lf",
     "noEmitOnError": true,
     "noImplicitReturns": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "outDir": "dist",
-    "paths": {
-      "*": [
-        "node_modules/*",
-        "src/types/*"
-      ]
-    },
+    "rootDir": "src",
     "sourceMap": true,
     "strict": true,
     "target": "es2022"

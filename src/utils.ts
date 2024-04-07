@@ -1,4 +1,4 @@
-import { paramCase } from 'change-case';
+import { kebabCase } from 'change-case';
 import type {
   ErrorDetails,
   EventNameSource,
@@ -21,8 +21,8 @@ export class Result<T> {
 }
 
 export function buildEventName(source: EventNameSource): EventName {
-  const moduleName = paramCase(source.module);
-  const eventName = paramCase(source.event);
+  const moduleName = kebabCase(source.module);
+  const eventName = kebabCase(source.event);
   const short = `${moduleName}.${eventName}`;
 
   return {

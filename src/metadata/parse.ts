@@ -1,4 +1,4 @@
-import type { MetadataV14 } from '@polkadot/types/interfaces';
+import type { MetadataV15 } from '@polkadot/types/interfaces';
 import type { EventSpec } from '../types';
 import { Result } from '../utils';
 import type { Filter } from '../filter';
@@ -11,7 +11,7 @@ import {
 } from './automagic';
 
 export function parse(
-  source: MetadataV14,
+  source: MetadataV15,
   types: TypeRegistry,
   filter: Filter,
 ): Result<EventSpec> {
