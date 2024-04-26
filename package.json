@@ -19,7 +19,7 @@
     "build": "rollup -c"
   },
   "dependencies": {
-    "@polkadot/api": "^10.12.6",
+    "@polkadot/api": "^11.0.2",
     "change-case": "^5.4.4",
     "lodash": "^4.17.21",
     "micromatch": "^4.0.5"
@@ -28,9 +28,9 @@
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-typescript": "^11.1.6",
     "@types/lodash": "^4.17.0",
-    "@types/micromatch": "^4.0.6",
-    "@types/node": "^20.12.5",
-    "rollup": "^4.14.1",
-    "typescript": "^5.4.4"
+    "@types/micromatch": "^4.0.7",
+    "@types/node": "^20.12.7",
+    "rollup": "^4.16.4",
+    "typescript": "^5.4.5"
   }
 }
