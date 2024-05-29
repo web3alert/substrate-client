@@ -78,6 +78,7 @@ export async function handleEvent(options: HandleEventOptions): Promise<Event> {
   return {
     name: event.name.full,
     params: {
+      source: event.argValues.map(value => value.toJSON()),
       raw,
       human,
     },

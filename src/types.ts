@@ -77,6 +77,7 @@ export type EventSpec = {
 export type Event = {
   name: string;
   params: {
+    source: unknown[];
     raw: Object;
     human: Object;
   };
