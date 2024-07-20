@@ -13,6 +13,7 @@ import type {
 } from './types';
 import type { EventRecord } from './event-record';
 import { Result } from './utils';
+import { extensions } from './extensions';
 import {
   TypeMappings,
   Metadata,
@@ -36,6 +37,7 @@ export type SubstrateClientConfig = {
 
 export type SubstrateClientOptions = {
   wsUrl: string;
+  extension?: string;
   customClientTypes?: RegistryTypes;
   config?: SubstrateClientConfig;
   defaultAddressFormat?: AddressFormat;
@@ -47,6 +49,7 @@ export type SubstrateClientOptions = {
 
 export class SubstrateClient {
   public wsUrl: string;
+  public extension?: string;
   private isHttps: boolean;
   public customClientTypes?: RegistryTypes;
   public config?: SubstrateClientConfig;
@@ -59,6 +62,7 @@ export class SubstrateClient {
   constructor(options: SubstrateClientOptions) {
     const {
       wsUrl,
+      extension,
       customClientTypes,
       config,
       defaultAddressFormat,
@@ -67,6 +71,7 @@ export class SubstrateClient {
     } = options;
     
     this.wsUrl = wsUrl;
+    this.extension = extension;
     this.isHttps = wsUrl.startsWith('http') || wsUrl.startsWith('https');
     this.customClientTypes = customClientTypes;
     this.config = config;
@@ -78,16 +83,20 @@ export class SubstrateClient {
   }
   
   public async connect(): Promise<void> {
+    const extension = (this.extension) ? extensions[this.extension] : undefined;
+    
     if(!this.isHttps){
       this.api = await ApiPromise.create({
         provider: new WsProvider(this.wsUrl),
         types: this.customClientTypes,
+        ...extension,
       });
     }
     else if(this.isHttps){
       this.api = await ApiPromise.create({
         provider: new HttpProvider(this.wsUrl),
         types: this.customClientTypes,
+        ...extension,
       })
     }
     

@@ -19,7 +19,10 @@
     "build": "rollup -c"
   },
   "dependencies": {
-    "@polkadot/api": "^12.0.1",
+    "@polkadot/api": "^12.2.1",
+    "@polkadot/api-augment": "^12.2.1",
+    "@polkadot/types": "^12.2.1",
+    "@polkadot/types-codec": "^12.2.1",
     "change-case": "^5.4.4",
     "lodash": "^4.17.21",
     "micromatch": "^4.0.5"
