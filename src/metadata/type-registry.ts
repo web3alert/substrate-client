@@ -33,8 +33,7 @@ export type TypeRegistryOptions = {
 
 export class TypeRegistry {
   public about: About;
-  
-  private ctx: mapper.Context;
+  public ctx: mapper.Context;
   
   constructor(options: TypeRegistryOptions) {
     const {
@@ -49,6 +48,8 @@ export class TypeRegistry {
     
     this.ctx = {
       about,
+      seen: new Set(),
+      refs: new Map(),
       wrappers: {
         index: wrappers ?? mapper.DEFAULT_WRAPPER_MAPPERS,
         unknowns: new Multiset(),

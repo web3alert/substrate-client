@@ -64,6 +64,7 @@ export async function handleEvent(options: HandleEventOptions): Promise<Event> {
     
     const ctx: parser.ParserContext = {
       api: api,
+      refs: metadata.types.ctx.refs,
       currencies: metadata.currencies,
       parent: event.name.full,
       path: [argHandler.name],

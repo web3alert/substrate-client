@@ -19,7 +19,7 @@ import type {
 import type { CurrencyRegistry } from './currency-registry';
 import type * as spec from './type-specs';
 import type { Junction, JunctionV0 } from '@polkadot/types/interfaces';
-import type { Context } from './type-mappers';
+import type { Context, Handler } from './type-mappers';
 import type { ApiPromise } from '@polkadot/api';
 import { formatBalance } from '../utils';
 
@@ -27,6 +27,7 @@ type Lookup = { match: string; replace: string };
 
 export type ParserContext = {
   api: ApiPromise;
+  refs: Map<string, Handler>;
   currencies: CurrencyRegistry;
   parent: string,
   path: string[];
@@ -108,11 +109,11 @@ export function unknownRaw(mainContext: Context, source: TypeDef, path: string):
     }
     let handler = mainContext.wrappers.get(mainContext, expandSource, path)
     if (handler.spec.type == 'unknown') {
-      //console.log(`Warning: Type ${expandSource.type} has no parser.`)
       return value.toJSON()
     }
     return handler.parse.raw(value, {
       api: ctx.api,
+      refs: ctx.refs,
       currencies: ctx.currencies,
       parent: ctx.parent,
       path: ctx.path,
@@ -133,11 +134,11 @@ export function unknownHuman(mainContext: Context, source: TypeDef, path: string
     }
     let handler = mainContext.wrappers.get(mainContext, expandSource, path)
     if (handler.spec.type == 'unknown') {
-      //console.log(`Warning: Type ${expandSource.type} has no parser.`)
       return value.toHuman()
     }
     return handler.parse.human(value, {
       api: ctx.api,
+      refs: ctx.refs,
       currencies: ctx.currencies,
       parent: ctx.parent,
       path: ctx.path,
@@ -161,6 +162,7 @@ export function call(mainContext: Context, source: TypeDef, path: string): Parse
       const handler = mainContext.wrappers.get(mainContext, argSource, `${path}.${argName}`);
       args[argName] = await handler.parse.human(argEntry[1], {
         api: ctx.api,
+        refs: ctx.refs,
         currencies: ctx.currencies,
         parent: ctx.parent,
         path: [...ctx.path, argName],
@@ -432,6 +434,7 @@ export function map(options: MapOptions): Parser<Record<string | number, Json>> 
     for (const [key, value] of asMap.entries()) {
       const keyDecoded = await keysParser(key, {
         api: ctx.api,
+        refs: ctx.refs,
         currencies: ctx.currencies,
         parent: ctx.parent,
         path: ctx.path,
@@ -441,6 +444,7 @@ export function map(options: MapOptions): Parser<Record<string | number, Json>> 
 
       result[keyDecoded] = await valuesParser(value, {
         api: ctx.api,
+        refs: ctx.refs,
         currencies: ctx.currencies,
         parent: ctx.parent,
         path: [...ctx.path, '' + keyDecoded],
@@ -471,6 +475,7 @@ export function object(options: ObjectOptions): Parser<Record<string, Json>> {
     for (const key of keys) {
       result[key] = await propParsers[key](asStruct.get(key)!, {
         api: ctx.api,
+        refs: ctx.refs,
         currencies: ctx.currencies,
         parent: ctx.parent,
         path: [...ctx.path, key],
@@ -500,6 +505,7 @@ export function enumObject(options: EnumObjectOptions): Parser<Object> {
     const key = asEnum.type;
     result[key] = await propParsers[key](asEnum.value, {
       api: ctx.api,
+      refs: ctx.refs,
       currencies: ctx.currencies,
       parent: ctx.parent,
       path: [...ctx.path, key],
@@ -524,6 +530,7 @@ export function humanEnumObject(options: EnumObjectOptions): Parser<Json> {
     const key = asEnum.type;
     result[key] = await propParsers[key](asEnum.value, {
       api: ctx.api,
+      refs: ctx.refs,
       currencies: ctx.currencies,
       parent: ctx.parent,
       path: [...ctx.path, key],
@@ -555,6 +562,7 @@ export function array<T extends Json = Json>(options: ArrayOptions<T>): Parser<T
     return await Promise.all(asArray.map(async (item, index) => {
       return parseItem(item, {
         api: ctx.api,
+        refs: ctx.refs,
         currencies: ctx.currencies,
         parent: ctx.parent,
         path: [...ctx.path, '' + index],
@@ -577,6 +585,7 @@ export function humanArray<T extends Json = Json>(options: ArrayOptions<T>): Par
     const vec = await Promise.all(asArray.map(async (item, index) => {
       return await parseItem(item, {
         api: ctx.api,
+        refs: ctx.refs,
         currencies: ctx.currencies,
         parent: ctx.parent,
         path: [...ctx.path, '' + index],
@@ -629,6 +638,7 @@ export function tuple(options: TupleOptions): Parser<Json[]> {
 
       return await parseItem(item, {
         api: ctx.api,
+        refs: ctx.refs,
         currencies: ctx.currencies,
         parent: ctx.parent,
         path: [...ctx.path, '' + index],
@@ -636,5 +646,61 @@ export function tuple(options: TupleOptions): Parser<Json[]> {
         rawArgs: ctx.rawArgs,
       });
     }));
+  };
+}
+
+export type LookupRawOptions = {
+  ref: string;
+};
+
+export function lookupRaw(options: LookupRawOptions): Parser<Json> {
+  const {
+    ref,
+  } = options;
+
+  return async (value, ctx) => {
+    const sub = ctx.refs.get(ref);
+    
+    if (!sub) {
+      throw new Error(`lookup not found: ${ref}`);
+    }
+    
+    return await sub.parse.raw(value, {
+      api: ctx.api,
+      refs: ctx.refs,
+      currencies: ctx.currencies,
+      parent: ctx.parent,
+      path: ctx.path,
+      spec: sub.spec,
+      rawArgs: ctx.rawArgs,
+    });
+  };
+}
+
+export type LookupHumanOptions = {
+  ref: string;
+};
+
+export function lookupHuman(options: LookupHumanOptions): Parser<Json> {
+  const {
+    ref,
+  } = options;
+
+  return async (value, ctx) => {
+    const sub = ctx.refs.get(ref);
+    
+    if (!sub) {
+      throw new Error(`lookup not found: ${ref}`);
+    }
+    
+    return await sub.parse.human(value, {
+      api: ctx.api,
+      refs: ctx.refs,
+      currencies: ctx.currencies,
+      parent: ctx.parent,
+      path: ctx.path,
+      spec: sub.spec,
+      rawArgs: ctx.rawArgs,
+    });
   };
 }

@@ -128,9 +128,15 @@ export type Wrapper =
   | Tuple
 ;
 
+export type Lookup = {
+  type: 'lookup';
+  ref: string;
+};
+
 export type Spec =
   | Primitive
   | Wrapper
+  | Lookup
 ;
 
 export type NamedSpec = {
@@ -228,4 +234,12 @@ export type TupleOptions = {
 
 export function tuple(options: TupleOptions): Tuple {
   return { type: 'tuple', ...options };
+}
+
+export type LookupOptions = {
+  ref: string;
+};
+
+export function lookup(options: LookupOptions): Lookup {
+  return { type: 'lookup', ...options };
 }
