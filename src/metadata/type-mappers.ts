@@ -349,8 +349,9 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   bind([
     'Junctions',
   ], (ctx, source, path) => {
+    const handler = ctx.wrappers.get(ctx, source, path);
     return {
-      spec: spec.skip(),
+      spec: handler.spec,
       parse: {
         raw: parser.raw(),
         human: parser.junctions(),
@@ -360,8 +361,9 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   bind([
     'Call', 'Proposal'
   ], (ctx, source, path) => {
+    const handler = ctx.wrappers.get(ctx, source, path);
     return {
-      spec: spec.skip(),
+      spec: handler.spec,
       parse: {
         raw: parser.raw(),
         human: parser.call(ctx, source, path),
@@ -382,8 +384,9 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   bind([
     'Moment',
   ], (ctx, source, path) => {
+    const handler = ctx.wrappers.get(ctx, source, path);
     return {
-      spec: spec.skip(),
+      spec: handler.spec,
       parse: {
         raw: parser.raw(),
         human: parser.moment(),
