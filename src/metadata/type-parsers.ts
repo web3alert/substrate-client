@@ -183,7 +183,13 @@ export function bool(): Parser<boolean> {
 }
 
 export function int(): Parser<number> {
-  return async value => value.toJSON() as number;
+  return async (value, ctx) => {
+    if (typeof value == 'number') {
+      return value;
+    }
+    
+    return value.toJSON() as number;
+  };
 }
 
 export function bigint(): Parser<number> {
