@@ -57,6 +57,7 @@ export class TypeRegistry {
       },
       primitives: {
         index: primitives ?? mapper.DEFAULT_PRIMITIVE_MAPPERS,
+        ignore: new Set(),
         unknowns: {
           basic: new Multiset(),
           complex: new Multiset(),

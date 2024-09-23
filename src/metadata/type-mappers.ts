@@ -21,6 +21,7 @@ export type Context = {
   };
   primitives: {
     index: PartialRecord<string, Mapper>;
+    ignore: Set<string>;
     unknowns: {
       basic: Multiset<string>;
       complex: Multiset<string>;
@@ -233,6 +234,18 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
       },
     };
   },
+  [TypeDefInfo.VecFixed]: (ctx, source, path) => {
+    const sub = { ...source.sub! as TypeDef };
+    const itemsHandler = ctx.wrappers.get(ctx, sub, `${path}[$]`);
+    
+    return {
+      spec: spec.array({ items: itemsHandler.spec }),
+      parse: {
+        raw: parser.array({ parseItem: itemsHandler.parse.raw }),
+        human: parser.humanArray({ parseItem: itemsHandler.parse.human }),
+      },
+    };
+  },
   [TypeDefInfo.Option]: (ctx, source, path) => {
     const sub = { ...source.sub! as TypeDef };
 
@@ -349,7 +362,17 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   bind([
     'Junctions',
   ], (ctx, source, path) => {
-    const handler = ctx.wrappers.get(ctx, source, path);
+    const handler = ctx.wrappers.get({
+      ...ctx,
+      primitives: {
+        ...ctx.primitives,
+        ignore: new Set([
+          ...Array.from(ctx.primitives.ignore),
+          'Junctions',
+        ]),
+      },
+    }, source, path);
+    
     return {
       spec: handler.spec,
       parse: {
@@ -361,7 +384,18 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   bind([
     'Call', 'Proposal'
   ], (ctx, source, path) => {
-    const handler = ctx.wrappers.get(ctx, source, path);
+    const handler = ctx.wrappers.get({
+      ...ctx,
+      primitives: {
+        ...ctx.primitives,
+        ignore: new Set([
+          ...Array.from(ctx.primitives.ignore),
+          'Call',
+          'Proposal',
+        ]),
+      },
+    }, source, path);
+    
     return {
       spec: handler.spec,
       parse: {
@@ -384,7 +418,17 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
   bind([
     'Moment',
   ], (ctx, source, path) => {
-    const handler = ctx.wrappers.get(ctx, source, path);
+    const handler = ctx.wrappers.get({
+      ...ctx,
+      primitives: {
+        ...ctx.primitives,
+        ignore: new Set([
+          ...Array.from(ctx.primitives.ignore),
+          'Moment',
+        ]),
+      },
+    }, source, path);
+    
     return {
       spec: handler.spec,
       parse: {
@@ -550,7 +594,7 @@ export const DEFAULT_PRIMITIVE_MAPPERS = buildIndex(DEFAULT_PRIMITIVE_MAPPER_BIN
 export const wrapper: Mapper = (ctx, source, path) => {
   let mapper: Mapper | undefined = undefined;
 
-  if (source.typeName != undefined) {
+  if (source.typeName != undefined && !ctx.primitives.ignore.has(source.typeName)) {
     mapper = ctx.primitives.index[source.typeName];
 
     if (!mapper) {
@@ -576,7 +620,7 @@ export const wrapper: Mapper = (ctx, source, path) => {
 export const primitive: Mapper = (ctx, source, path) => {
   let mapper: Mapper | undefined = undefined;
 
-  if (source.typeName != undefined) {
+  if (source.typeName != undefined && !ctx.primitives.ignore.has(source.typeName)) {
     mapper = ctx.primitives.index[source.typeName];
 
     if (!mapper) {
@@ -584,7 +628,7 @@ export const primitive: Mapper = (ctx, source, path) => {
     }
   }
 
-  if (!mapper) {
+  if (!mapper && !ctx.primitives.ignore.has(source.type)) {
     mapper = ctx.primitives.index[source.type];
 
     if (!mapper) {
