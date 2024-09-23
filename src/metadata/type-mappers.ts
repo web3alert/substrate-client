@@ -149,7 +149,7 @@ export const DEFAULT_WRAPPER_MAPPERS: PartialRecord<TypeDefInfo, Mapper> = {
     
     if (!ctx.seen.has(ref)) {
       ctx.seen.add(ref);
-      ctx.refs.set(ref, ctx.wrappers.get(ctx, sub, path));
+      ctx.refs.set(ref, ctx.wrappers.get(ctx, sub, `types.${ref}`));
     }
     
     return {
@@ -523,7 +523,8 @@ const DEFAULT_PRIMITIVE_MAPPER_BINDINGS: PrimitiveMapperBinding[] = [
     };
   }),
   bind([
-    'H256', 'AuthorityId', 'CallHash', 'MessageId', '[u8;32]', 'Public'
+    'H256', 'AuthorityId', 'CallHash', 'MessageId', '[u8;32]', 'Public', 'CollatorId',
+    '[u8;64]', 'CollatorSignature', 'ValidatorSignature', '[u8;4]',
   ], (ctx, source, path) => {
     return {
       spec: spec.hash(),
@@ -599,6 +600,14 @@ export const wrapper: Mapper = (ctx, source, path) => {
 
     if (!mapper) {
       ctx.primitives.unknowns.complex.add(source.typeName, path);
+    }
+  }
+
+  if (!mapper && !ctx.primitives.ignore.has(source.type)) {
+    mapper = ctx.primitives.index[source.type];
+
+    if (!mapper) {
+      ctx.primitives.unknowns.basic.add(source.type, path);
     }
   }
 
