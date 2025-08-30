@@ -1,5 +1,5 @@
 import { snakeCase } from 'change-case';
-import type { MetadataV15 } from '@polkadot/types/interfaces';
+import type { MetadataV16 } from '@polkadot/types/interfaces';
 import { sanitize } from '@polkadot/types-codec';
 import type { EventSpec } from '../types';
 import {
@@ -57,7 +57,7 @@ function parseDocs(docs: string): ParsedDocs {
 }
 
 export function parseEvents(
-  source: MetadataV15,
+  source: MetadataV16,
   types: TypeRegistry,
   filter: Filter,
 ): Result<EventSpec> {

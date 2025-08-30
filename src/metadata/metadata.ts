@@ -1,4 +1,4 @@
-import type { MetadataV15 } from '@polkadot/types/interfaces';
+import type { MetadataV16 } from '@polkadot/types/interfaces';
 import type {
   ErrorDetails,
   About,
@@ -12,7 +12,7 @@ import type { TypeMappings } from './type-mappers';
 
 export interface MetadataOptions {
   about: About;
-  source: MetadataV15;
+  source: MetadataV16;
   filter: Filter;
   typeMappings?: TypeMappings;
   lookupPathsWhitelist?: string[];

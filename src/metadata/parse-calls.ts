@@ -1,5 +1,5 @@
 import { sanitize } from '@polkadot/types-codec';
-import type { MetadataV15 } from '@polkadot/types/interfaces';
+import type { MetadataV16 } from '@polkadot/types/interfaces';
 import type { EventSpec } from '../types';
 import {
   Result,
@@ -10,7 +10,7 @@ import type { TypeRegistry } from './type-registry';
 import { formatDocs } from './format-docs';
 
 export function parseCalls(
-  source: MetadataV15,
+  source: MetadataV16,
   types: TypeRegistry,
   filter: Filter,
 ): Result<EventSpec> {
